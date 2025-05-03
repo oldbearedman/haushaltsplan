@@ -299,19 +299,19 @@ function App() {
         </div>
       ) : (
         <div className="task-list">
-          {rewards.map((reward) => (
-            <div key={reward.id} className="task open">
-              <div className="task-text">
-                <div className="task-title">{reward.name} (-{reward.cost})</div>
-              </div>
-              <button
-                className="done-button"
-                onClick={() => handleRedeem(reward.cost)}
-              >
-                Einlösen
-              </button>
-            </div>
-          ))}
+{rewards.map((reward) => (
+  <div key={reward.id} className="task reward">
+    <div className="task-text">
+      <div className="task-title">{reward.name} (-{reward.cost})</div>
+    </div>
+    <button
+      className="done-button"
+      onClick={() => handleRedeem(reward.cost)}
+    >
+      Einlösen
+    </button>
+  </div>
+))}
         </div>
       )}
     </div>

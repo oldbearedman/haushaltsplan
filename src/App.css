@@ -284,3 +284,20 @@ header h1 {
     align-self: flex-start;
   }
 }
+.task.reward {
+  background: #fff8dc; /* helles Gelb, wirkt wie Belohnung */
+}
+
+.task.reward .task-title {
+  color: #8a4baf; /* fröhliches Lila */
+  font-weight: bold;
+}
+
+.task.reward .done-button {
+  background: #ff9800; /* Orange für "Einlösen" */
+  color: white;
+}
+
+.task.reward .done-button:hover {
+  background: #f57c00;
+}
