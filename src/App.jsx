@@ -12,6 +12,26 @@ import {
 
 const levelThresholds = Array.from({ length: 99 }, (_, i) => 40 + i * 15);
 
+const levelNames = [
+  "Looser", "Knecht", "Putzlehrling", "Chaoskind", "Staubfänger",
+  "Putzmuffel", "Schluri", "Unordnungsfan", "Lappenlutscher", "Sockenstreuer",
+  "Kleiner Held", "Fleißbienchen", "Ordnungsschüler", "Putzazubi", "Klarblicker",
+  "Wischlehrer", "Halbprofi", "Streitvermeider", "Routineheld", "Putzprofi",
+  "Saugmeister", "Bodenbezwinger", "Flächenglätter", "Waschzauberer", "Kühlschrankdompteur",
+  "Besenritter", "Putzdrache", "Bademeister", "Spülmaschinenheld", "Dreckvernichter",
+  "Ordnungshüter", "Aufräumkapitän", "Küchenzauberer", "Schmutzmagier", "Wäschechampion",
+  "Hygienewächter", "Putzgeneral", "Haushaltsmanager", "Glanzminister", "Wunderwischer",
+  "Drecksdompteur", "Spülkrieger", "Alltagsheld", "Putzchampion", "Haushaltsheld",
+  "Sauberkeitsguru", "Supermutti", "Hausvater", "Ordnungsboss", "Wunderwesen",
+  "Sauberkeitskaiser", "Meister Proper", "Staubkönig", "Putztitan", "Hygienegott",
+  "Supersorter", "Familienchef", "Gott des Haushalts", "Haushaltslegende", "Unaufhaltbar",
+  "Putzmaschine", "Der Unerreichbare", "Der Perfekte", "Legende", "Halbgott der Ordnung",
+  "Putzphänomen", "Der Endgegner", "Hüter des Haushalts", "Übermensch", "Maximalreiniger",
+  "Glanzgott", "Finaler Boss", "Der Erhabene", "Der Unermüdliche", "Haushaltsorakel",
+  "Heiliger Wischer", "Staubvernichter", "Sankt Ordnung", "Absolute Macht",
+  ...Array(21).fill("Ultimativer Saubermann")
+];
+
 function App() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [points, setPoints] = useState(0);
@@ -42,7 +62,57 @@ function App() {
         id: doc.id,
         ...doc.data(),
       }));
-      setTasks(allTasks);
+
+      const now = new Date();
+      const todayStr = now.toISOString().split("T")[0];
+
+      const needsReset = allTasks.some((task) => {
+        const isRepeat = !!task.repeatInterval;
+        const isDone = !!task.doneBy;
+
+        if (isRepeat && isDone && task.availableFrom && todayStr >= task.availableFrom) {
+          return true;
+        }
+
+        if (!isRepeat && task.lastResetDate !== todayStr) {
+          return true;
+        }
+
+        return false;
+      });
+
+      if (needsReset) {
+        const batch = allTasks.map((task) => {
+          const isRepeat = !!task.repeatInterval;
+          const isDone = !!task.doneBy;
+
+          if (isRepeat) {
+            if (isDone && task.availableFrom && todayStr >= task.availableFrom) {
+              const updates = { doneBy: "", lastResetDate: todayStr };
+              return updateDoc(doc(db, "tasks", task.id), updates).then(() => ({
+                ...task,
+                ...updates
+              }));
+            }
+            return Promise.resolve(task);
+          }
+
+          if (task.lastResetDate !== todayStr) {
+            const updates = { doneBy: "", lastResetDate: todayStr };
+            return updateDoc(doc(db, "tasks", task.id), updates).then(() => ({
+              ...task,
+              ...updates
+            }));
+          }
+
+          return Promise.resolve(task);
+        });
+
+        const updatedTasks = await Promise.all(batch);
+        setTasks(updatedTasks);
+      } else {
+        setTasks(allTasks);
+      }
 
       const rewardsSnap = await getDocs(collection(db, "rewards"));
       const allRewards = rewardsSnap.docs.map((doc) => ({
@@ -73,7 +143,7 @@ function App() {
 
     const taskRef = doc(db, "tasks", task.id);
     const userRef = doc(db, "users", selectedUser.id);
-    const isMulti = task.name === "Tisch decken & abräumen";
+    const isMulti = task.name === "Tisch decken & abdecken" || task.targetCount;
     const current = task.count || 0;
     const target = task.targetCount || 3;
 
@@ -108,10 +178,15 @@ function App() {
         await updateDoc(taskRef, updates);
         await updateDoc(userRef, {
           points: increment(-task.points),
+          xp: increment(-task.points),
         });
 
         const newPoints = points - task.points;
+        const newXP = xp - task.points;
         setPoints(newPoints);
+        setXp(newXP);
+        calculateLevel(newXP);
+
         setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...updates } : t));
       }
 
@@ -120,7 +195,13 @@ function App() {
 
     const isDone = !!task.doneBy;
     if (!isDone) {
-      await updateDoc(taskRef, { doneBy: selectedUser.name });
+      await updateDoc(taskRef, {
+        doneBy: selectedUser.name,
+        availableFrom: task.repeatInterval
+          ? new Date(Date.now() + task.repeatInterval * 86400000).toISOString().split("T")[0]
+          : ""
+      });
+
       await updateDoc(userRef, {
         points: increment(task.points),
         xp: increment(task.points),
@@ -175,10 +256,15 @@ function App() {
             ←
           </button>
         )}
-<h1>Haushaltsplan</h1>
-<button className="menu-button" onClick={() => alert("Menü kommt bald!")}>
+        <h1>Haushaltsplan</h1>
+        {selectedUser && (
+          <button
+  className="menu-button"
+  onClick={() => alert("Menü kommt bald!")}
+>
   ☰
 </button>
+        )}
       </header>
 
       <div className="top-gap" />
@@ -186,7 +272,7 @@ function App() {
       {selectedUser && (
         <div className="fixed-stats">
           <div className="level-display">
-            <div className="level-info">Level {level}</div>
+            <div className="level-info">Level {level} – {levelNames[level - 1]}</div>
             <div className="xp-bar">
               <div
                 className="xp-fill"
@@ -219,18 +305,20 @@ function App() {
               return doneA - doneB;
             })
             .map((task) => {
-              const isMulti = task.name === "Tisch decken & abräumen";
+              const isMulti = typeof task.targetCount === "number";
               const current = task.count || 0;
               const target = task.targetCount || 3;
               const isDone = isMulti ? current >= target : !!task.doneBy;
               const canUndo = task.doneBy === selectedUser.name;
+              const locked = task.repeatInterval && task.doneBy && task.availableFrom && task.availableFrom > new Date().toISOString().split("T")[0];
 
               return (
                 <div key={task.id} className={`task ${isDone ? "done" : "open"}`}>
                   <div className="task-text">
-                    <div className={`task-title ${isDone ? "strikethrough" : ""}`}>
-                      {task.name} (+{task.points})
-                    </div>
+                  <div className={`task-title ${isDone ? "strikethrough" : ""}`}>
+  {task.name}
+</div>
+
 
                     {isMulti && (
                       <div className="multi-circles">
@@ -243,21 +331,25 @@ function App() {
                       </div>
                     )}
 
-                    {isDone && (
+                    {locked && (
+                      <div className="done-by">Verfügbar ab: {task.availableFrom}</div>
+                    )}
+
+                    {isDone && !locked && (
                       <div className="done-by">Erledigt von {task.doneBy}</div>
                     )}
                   </div>
 
-                  {isMulti && (!isDone || task.doneBy === selectedUser.name) && (
+                  {!locked && isMulti && (!isDone || task.doneBy === selectedUser.name) && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      {!isDone && (
-                        <button
-                          className="done-button"
-                          onClick={() => handleComplete(task, "add")}
-                        >
-                          Erledigt
-                        </button>
-                      )}
+{!isDone && (
+  <button
+    className="done-button"
+    onClick={() => handleComplete(task, "add")}
+  >
+    +{task.points}
+  </button>
+)}
                       {current > 0 && (
                         <button
                           className="done-button grey"
@@ -269,13 +361,14 @@ function App() {
                     </div>
                   )}
 
-                  {!isMulti && (!isDone || canUndo) && (
+                  {!locked && !isMulti && (!isDone || canUndo) && (
                     <button
-                      className={`done-button ${isDone ? "grey" : ""}`}
-                      onClick={() => handleComplete(task)}
-                    >
-                      {isDone ? "Rückgängig" : "Erledigt"}
-                    </button>
+  className={`done-button ${isDone ? "grey" : ""}`}
+  onClick={() => handleComplete(task)}
+>
+  {isDone ? "Rückgängig" : `+${task.points}`}
+</button>
+
                   )}
                 </div>
               );

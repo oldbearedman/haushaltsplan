@@ -13,29 +13,37 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const rewards = [
-  { name: "5 Minuten Pause", cost: 20 },
-  { name: "10 Minuten Bildschirmzeit", cost: 40 },
-  { name: "1 Stunde zocken", cost: 100 },
-  { name: "1 Kugel Eis", cost: 60 },
-  { name: "Süßigkeit nach Wahl", cost: 50 },
-  { name: "Filmabend aussuchen", cost: 150 },
-  { name: "1 Tag keine Aufgaben", cost: 300 },
-  { name: "Lieblingsessen wünschen", cost: 200 },
-  { name: "30 Minuten Tablet/Handy", cost: 80 },
-  { name: "Mit Mama/Papa allein raus", cost: 120 },
-  { name: "3 € Taschengeld extra", cost: 180 },
-  { name: "Brettspielabend", cost: 130 },
-  { name: "Schlafen auf dem Sofa", cost: 90 },
-  { name: "Länger aufbleiben (30 min)", cost: 70 },
-  { name: "Neues Hörspiel", cost: 160 }
+const today = new Date().toISOString().split("T")[0];
+
+const tasks = [
+  { name: "Spülmaschine einräumen", points: 6 },
+  { name: "Geschirrspüler ausräumen", points: 6 },
+  { name: "Wäsche waschen", points: 10 },
+  { name: "Zimmer aufräumen", points: 10 },
+  { name: "Wohnung saugen", points: 20 },
+  { name: "Wohnung wischen", points: 25 },
+  { name: "Badezimmer putzen", points: 30 },
+  { name: "Bett beziehen", points: 15 },
+  { name: "Tisch decken & abdecken", points: 5, targetCount: 3, count: 0 },
+  { name: "Wäsche im Schrank verteilen", points: 5, targetCount: 3, count: 0 },
+  { name: "Fenster putzen", points: 45, repeatInterval: 14 },
+  { name: "Kühlschrank auswischen", points: 20, repeatInterval: 30 },
+  { name: "Müll rausbringen", points: 5 },
+  { name: "Einkäufe einräumen", points: 8 },
+  { name: "Katzenklo reinigen", points: 10, repeatInterval: 3 },
+  { name: "Oberflächen abwischen", points: 12 },
 ];
 
-async function addRewards() {
-  for (const reward of rewards) {
-    await addDoc(collection(db, "rewards"), reward);
-    console.log(`Prämie hinzugefügt: ${reward.name}`);
+async function addTasks() {
+  for (const task of tasks) {
+    const taskWithMeta = {
+      ...task,
+      doneBy: "",
+      lastResetDate: today,
+    };
+    await addDoc(collection(db, "tasks"), taskWithMeta);
+    console.log(`Aufgabe hinzugefügt: ${task.name}`);
   }
 }
 
-addRewards();
+addTasks();
