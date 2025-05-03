@@ -1,19 +1,19 @@
 :root {
-  --bg-page: #f0f9ff;
-  --bg-app: #ffffff;
-  --bg-task-open: #e0fff4;
+  --bg-page: #f5f0e6;
+  --bg-app: #ffffffcc;
+  --bg-task-open: #e6f5e6;
   --bg-task-done: #f2f2f2;
-  --accent: #28a745;
-  --accent-hover: #1e7e34;
-  --text: #111;
-  --text-muted: #666;
+  --accent: #a3702c; /* warmes Braun/Gold für Buttons */
+  --accent-hover: #8b5a2b;
+  --text: #2e1d12;
+  --text-muted: #6d5c4f;
   --radius: 14px;
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   --font: 'Inter', 'Segoe UI', sans-serif;
-  --header-bg: #004080;
-  --profile-bg: #dcecf9;
-  --xp-bar: linear-gradient(90deg, #00c9ff, #92fe9d);
-  --xp-bg: #cbd5e0;
+  --header-bg: transparent;
+  --profile-bg: transparent;
+  --xp-bar: linear-gradient(90deg, #f7b733, #fc4a1a);
+  --xp-bg: #f0e0cc;
 }
 
 * {
@@ -24,8 +24,7 @@
 
 html, body {
   height: 100%;
-  margin: 0;
-  background-color: var(--bg-page);
+  background: url("/background.png") center center / cover no-repeat;
   font-family: var(--font);
 }
 
@@ -35,6 +34,26 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
+}
+
+.wood-frame::before,
+.wood-frame::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  background: #4b2e19;
+  z-index: 0;
+}
+
+.wood-frame::before {
+  left: 0;
+}
+
+.wood-frame::after {
+  right: 0;
 }
 
 .app-wrapper {
@@ -47,11 +66,25 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  z-index: 1;
+  backdrop-filter: blur(2px);
 }
 
-/* Fixierter Header */
+/* Header mit Holzschild */
+header h1 {
+  background: #c1935c;
+  color: #3b260f;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.4rem;
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+  border: 2px solid #8b5a2b;
+  display: inline-block;
+}
+
 header {
-  background: var(--header-bg);
+  background: none;
   padding: 20px;
   text-align: center;
   position: fixed;
@@ -61,38 +94,29 @@ header {
   max-width: 390px;
   left: 50%;
   transform: translateX(-50%);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border-top-left-radius: var(--radius);
-  border-top-right-radius: var(--radius);
 }
 
-header h1 {
-  font-size: 1.5rem;
-  color: white;
+.wood-sign {
+  background: #c1935c;
+  color: #3b260f;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.4rem;
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+  border: 2px solid #8b5a2b;
+  display: inline-block;
 }
 
-.back-button {
-  position: absolute;
-  left: 0px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.6rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: white;
-}
-
-/* Platzhalter unter fixem Header */
+/* Platzhalter unter Header */
 .top-gap {
-  height: 50px;
-  background: var(--profile-bg);
+  height: 70px;
   flex-shrink: 0;
 }
 
-/* Fixierter Bereich für XP & Punkte */
+/* Fixierte XP & Punkte */
 .fixed-stats {
-  background: white;
+  background: #f8f1e7;
   padding: 10px 20px;
   width: 100%;
   max-width: 390px;
@@ -101,16 +125,13 @@ header h1 {
   left: 50%;
   transform: translateX(-50%);
   z-index: 999;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   border-bottom-left-radius: var(--radius);
   border-bottom-right-radius: var(--radius);
-
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-/* Level-Anzeige */
 .level-display {
   flex: 1;
   padding-right: 10px;
@@ -134,7 +155,6 @@ header h1 {
   background: var(--xp-bar);
   width: 0%;
   transition: width 0.3s ease;
-  box-shadow: 0 0 10px #00c9ff;
 }
 
 .xp-label {
@@ -144,7 +164,6 @@ header h1 {
   text-align: right;
 }
 
-/* Punkteanzeige */
 .points-display {
   background: #333;
   color: white;
@@ -157,55 +176,12 @@ header h1 {
   cursor: pointer;
 }
 
-/* Nutzer-Auswahl */
-.name-select {
-  flex: 1;
-  overflow-y: auto;
-  padding: 30px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: center;
-  background: var(--profile-bg);
-}
-
-.profile-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.profile-image {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  object-fit: cover;
-  box-shadow: var(--shadow);
-  transition: transform 0.2s;
-  border: 3px solid gold;
-}
-
-.profile-image:hover {
-  transform: scale(1.05);
-}
-
-.profile-name {
-  font-size: 1.1rem;
-  color: var(--text);
-  font-weight: bold;
-  margin-top: 10px;
-}
-
-/* Aufgabenliste */
 .task-list {
   flex: 1;
   overflow-y: auto;
   padding: 10px 20px 30px;
   min-height: 0;
-  margin-top: 83px;
+  margin-top: 90px;
 }
 
 .task-list::-webkit-scrollbar {
@@ -213,7 +189,6 @@ header h1 {
   background: transparent;
 }
 
-/* Aufgaben */
 .task {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -223,9 +198,6 @@ header h1 {
   justify-content: space-between;
   align-items: flex-start;
   flex-wrap: wrap;
-}
-
-.task.open {
   background: var(--bg-task-open);
 }
 
@@ -259,7 +231,6 @@ header h1 {
   margin-top: 6px;
 }
 
-/* Fortschrittskreise */
 .multi-circles {
   display: flex;
   gap: 8px;
@@ -277,7 +248,6 @@ header h1 {
   background: #4caf50;
 }
 
-/* Buttons */
 .done-button {
   background: var(--accent);
   color: white;
@@ -301,7 +271,6 @@ header h1 {
   cursor: default;
 }
 
-/* Belohnungen */
 .task.reward {
   background: #fff8dc;
 }
@@ -320,7 +289,6 @@ header h1 {
   background: #f57c00;
 }
 
-/* Abschnittstitel */
 .section-title {
   font-size: 1.2rem;
   font-weight: bold;
@@ -329,21 +297,27 @@ header h1 {
   text-align: center;
 }
 
-/* Menübutton */
-.menu-button {
+.menu-button,
+.back-button {
   position: absolute;
-  right: 0;
   top: 50%;
   transform: translateY(-50%);
   font-size: 1.6rem;
   background: none;
   border: none;
   cursor: pointer;
-  color: white;
+  color: #3b260f;
   padding: 0 14px;
 }
 
-/* Level-Up-Popup */
+.back-button {
+  left: 0;
+}
+
+.menu-button {
+  right: 0;
+}
+
 .level-up-popup {
   position: fixed;
   top: 30%;
@@ -351,15 +325,20 @@ header h1 {
   transform: translateX(-50%);
   background: gold;
   color: black;
-  padding: 20px 30px;
+  padding: 14px 20px;
   border-radius: 12px;
-  font-size: 1.4em;
+  font-size: 1rem;
   font-weight: bold;
   z-index: 9999;
   animation: pop-in-out 3s ease forwards;
   box-shadow: 0 0 20px 5px rgba(255, 215, 0, 0.7);
   text-align: center;
+  white-space: nowrap; /* <-- verhindert Zeilenumbruch */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
+
 
 @keyframes pop-in-out {
   0% {
@@ -378,16 +357,48 @@ header h1 {
     transform: translate(-50%, -60%) scale(0.8);
   }
 }
+.name-select {
+  flex: 1;
+  overflow-y: auto;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  background: transparent; /* ← wichtig */
+}
 
-/* Mobile */
-@media (max-width: 480px) {
-  .task {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.profile-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.2s;
+}
 
-  .done-button {
-    margin-top: 10px;
-    align-self: flex-start;
-  }
+.profile-button:hover {
+  transform: scale(1.05);
+}
+
+.profile-image {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+  border: 3px solid #8b5a2b;
+  background-color: #fff;
+}
+
+.profile-name {
+  font-size: 1.1rem;
+  color: #3b260f;
+  font-weight: bold;
+  margin-top: 10px;
+  text-shadow: 0 1px 0 #fff;
+}
+.user-list {
+  background: transparent;
 }
