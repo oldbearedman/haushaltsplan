@@ -48,38 +48,35 @@ function App() {
     if (isMulti) {
       if (action === "add" && current < target) {
         const newCount = current + 1;
-        await updateDoc(taskRef, { count: newCount });
-
+        const updates = { count: newCount };
+      
         if (newCount === target) {
-          await updateDoc(taskRef, { doneBy: selectedUser.name });
-          await updateDoc(userRef, { points: increment(task.points) });
-          setPoints(p => p + task.points);
+          updates.doneBy = selectedUser.name;
         }
-
+      
+        await updateDoc(taskRef, updates);
+        await updateDoc(userRef, { points: increment(task.points) });
+        setPoints(p => p + task.points);
+      
         setTasks(prev =>
           prev.map(t =>
-            t.id === task.id
-              ? {
-                  ...t,
-                  count: newCount,
-                  ...(newCount === target ? { doneBy: selectedUser.name } : {})
-                }
-              : t
+            t.id === task.id ? { ...t, ...updates } : t
           )
         );
-      }
+      }      
 
       if (action === "remove" && current > 0) {
         const newCount = current - 1;
+        const wasDone = current === target && task.doneBy === selectedUser.name;
+
         const updates = {
           count: newCount,
           doneBy: newCount < target ? "" : task.doneBy,
         };
 
-        if (current === target && task.doneBy === selectedUser.name) {
-          await updateDoc(userRef, { points: increment(-task.points) });
-          setPoints(p => p - task.points);
-        }
+        await updateDoc(userRef, { points: increment(-task.points) });
+        setPoints(p => p - task.points);
+        
 
         await updateDoc(taskRef, updates);
 
@@ -172,14 +169,16 @@ function App() {
                       )}
                     </div>
 
-                    {!isDone && isMulti && (
+                    {isMulti && (!isDone || task.doneBy === selectedUser.name) && (
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <button
-                          className="done-button"
-                          onClick={() => handleComplete(task, "add")}
-                        >
-                          Erledigt
-                        </button>
+                        {!isDone && (
+                          <button
+                            className="done-button"
+                            onClick={() => handleComplete(task, "add")}
+                          >
+                            Erledigt
+                          </button>
+                        )}
                         {current > 0 && (
                           <button
                             className="done-button grey"
