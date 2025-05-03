@@ -47,16 +47,18 @@ html, body {
   overflow: hidden;
 }
 
-/* Header */
+/* Fixierter Header */
 header {
   background: var(--header-bg);
   padding: 20px;
   text-align: center;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  position: relative; /* <-- NEU */
+  z-index: 1000;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
 }
+
 header h1 {
   font-size: 1.5rem;
   color: white;
@@ -72,7 +74,14 @@ header h1 {
   color: white;
 }
 
-/* Punktestand */
+/* Platzhalter unter fixem Header */
+.top-gap {
+  height: 80px;
+  background: var(--profile-bg);
+  flex-shrink: 0;
+}
+
+/* Punkteanzeige (Badge) */
 .points-display {
   background: #333;
   color: white;
@@ -85,7 +94,7 @@ header h1 {
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
-/* Profil-Auswahl untereinander */
+/* Namen untereinander */
 .name-select {
   flex: 1;
   overflow-y: auto;

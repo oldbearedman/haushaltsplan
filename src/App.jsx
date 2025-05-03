@@ -128,6 +128,8 @@ function App() {
         <h1>Haushaltsplan</h1>
       </header>
 
+      <div className="top-gap" />
+
       {!selectedUser ? (
         <UserList onUserSelect={setSelectedUser} />
       ) : (
