@@ -1,0 +1,177 @@
+/* Grundlegendes Styling */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Hintergrundfarbe der gesamten Seite */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #e0e0e0; /* Etwas dunkleres Grau */
+  color: #333;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Weitere Styles bleiben unverändert */
+.app-wrapper {
+  width: 100%;
+  max-width: 480px; /* Maximale Breite wie bei einem iPhone */
+  height: 100%;
+  background-color: white;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+
+header {
+  width: 100%;
+  text-align: center;
+  padding: 20px 0;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+header h1 {
+  font-size: 2rem;
+  color: black;
+}
+
+/* Styling für die Namensauswahl */
+.name-select {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 40px;
+  width: 100%;
+}
+
+.name-button {
+  width: 100%;
+  max-width: 300px;
+  padding: 15px;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 10px;
+  background-color: #4caf50;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.name-button:hover {
+  background-color: #3e8e41;
+}
+
+/* Styling für die Aufgabenansicht */
+.task-view {
+  width: 100%;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-height: 70vh;
+  flex: 1;
+  padding-bottom: 20px;
+  overflow-y: auto; /* Ermöglicht das Scrollen */
+}
+
+/* Styling für die Punkteanzeige */
+.points-display {
+  font-size: 1.4rem;
+  margin-bottom: 20px;
+  text-align: right;
+  padding-right: 10px;
+  color: black;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.points-display.updated {
+  color: #4caf50;
+  transform: scale(1.1);
+}
+
+/* Styling für Aufgaben */
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.task {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 10px;
+  padding: 15px;
+  color: white;
+  font-size: 1rem;
+  flex-wrap: wrap;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.task.open {
+  background-color: #4caf50;
+}
+
+.task.done {
+  background-color: #999;
+  text-decoration: line-through;
+}
+
+.task-text {
+  flex: 1;
+  margin-right: 10px;
+}
+
+.done-button {
+  background: white;
+  color: black;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.done-button:hover {
+  background-color: #ddd;
+}
+
+.scroll-message {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 1.1rem;
+  color: gray;
+}
+
+@media (max-width: 480px) {
+  .task-text {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .task {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .done-button {
+    align-self: flex-end;
+  }
+}
+
+/* Versteckt die Scroll-Leiste */
+.task-view::-webkit-scrollbar {
+  display: none;
+}
