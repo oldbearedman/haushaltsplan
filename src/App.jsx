@@ -17,10 +17,12 @@ const levelThresholds = Array.from({ length: 99 }, (_, i) =>
 function App() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [points, setPoints] = useState(0);
+  const [xp, setXp] = useState(0);
   const [tasks, setTasks] = useState([]);
   const [level, setLevel] = useState(1);
   const [xpProgress, setXpProgress] = useState(0);
   const [xpToNext, setXpToNext] = useState(40);
+  const [showRedeemModal, setShowRedeemModal] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -30,8 +32,10 @@ function App() {
       const currentUser = usersSnap.docs.find(u => u.id === selectedUser.id);
       if (currentUser) {
         const totalPoints = currentUser.data().points || 0;
+        const totalXP = currentUser.data().xp || 0;
         setPoints(totalPoints);
-        calculateLevel(totalPoints);
+        setXp(totalXP);
+        calculateLevel(totalXP);
       }
 
       const tasksSnap = await getDocs(collection(db, "tasks"));
@@ -78,10 +82,15 @@ function App() {
         }
 
         await updateDoc(taskRef, updates);
-        await updateDoc(userRef, { points: increment(task.points) });
+        await updateDoc(userRef, {
+          points: increment(task.points),
+          xp: increment(task.points),
+        });
         const newPoints = points + task.points;
+        const newXP = xp + task.points;
         setPoints(newPoints);
-        calculateLevel(newPoints);
+        setXp(newXP);
+        calculateLevel(newXP);
 
         setTasks(prev =>
           prev.map(t =>
@@ -98,11 +107,11 @@ function App() {
         };
 
         await updateDoc(taskRef, updates);
-        await updateDoc(userRef, { points: increment(-task.points) });
+        await updateDoc(userRef, {
+          points: increment(-task.points),
+        });
         const newPoints = points - task.points;
         setPoints(newPoints);
-        calculateLevel(newPoints);
-
         setTasks(prev =>
           prev.map(t =>
             t.id === task.id ? { ...t, ...updates } : t
@@ -116,11 +125,16 @@ function App() {
     const isDone = !!task.doneBy;
     if (!isDone) {
       await updateDoc(taskRef, { doneBy: selectedUser.name });
-      await updateDoc(userRef, { points: increment(task.points) });
+      await updateDoc(userRef, {
+        points: increment(task.points),
+        xp: increment(task.points),
+      });
 
       const newPoints = points + task.points;
+      const newXP = xp + task.points;
       setPoints(newPoints);
-      calculateLevel(newPoints);
+      setXp(newXP);
+      calculateLevel(newXP);
 
       setTasks(prev =>
         prev.map(t =>
@@ -129,18 +143,35 @@ function App() {
       );
     } else if (task.doneBy === selectedUser.name) {
       await updateDoc(taskRef, { doneBy: "" });
-      await updateDoc(userRef, { points: increment(-task.points) });
-
+      await updateDoc(userRef, {
+        points: increment(-task.points),
+        xp: increment(-task.points),
+      });
+    
       const newPoints = points - task.points;
+      const newXP = xp - task.points;
       setPoints(newPoints);
-      calculateLevel(newPoints);
-
+      setXp(newXP);
+      calculateLevel(newXP);
+    
       setTasks(prev =>
         prev.map(t =>
           t.id === task.id ? { ...t, doneBy: "" } : t
         )
       );
+    }    
+  };
+
+  const handleRedeem = async (cost) => {
+    if (points < cost) {
+      alert("Nicht genug Punkte!");
+      return;
     }
+
+    const userRef = doc(db, "users", selectedUser.id);
+    await updateDoc(userRef, { points: increment(-cost) });
+    setPoints(points - cost);
+    setShowRedeemModal(false);
   };
 
   return (
@@ -170,7 +201,13 @@ function App() {
               XP: {xpProgress} / {xpToNext}
             </div>
           </div>
-          <div className="points-display">Punkte: {points}</div>
+          <div
+            className="points-display"
+            onClick={() => setShowRedeemModal(true)}
+            style={{ cursor: "pointer" }}
+          >
+            Punkte: {points}
+          </div>
         </div>
       )}
 
@@ -246,6 +283,19 @@ function App() {
                 </div>
               );
             })}
+        </div>
+      )}
+
+      {showRedeemModal && (
+        <div className="modal-overlay" onClick={() => setShowRedeemModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Punkte einlösen</h2>
+            <p>Wähle eine Belohnung:</p>
+            <button onClick={() => handleRedeem(50)}>5 Minuten Pause (-50)</button>
+            <button onClick={() => handleRedeem(100)}>1 Stunde zocken (-100)</button>
+            <button onClick={() => handleRedeem(200)}>Eis essen (-200)</button>
+            <button onClick={() => setShowRedeemModal(false)}>Abbrechen</button>
+          </div>
         </div>
       )}
     </div>
