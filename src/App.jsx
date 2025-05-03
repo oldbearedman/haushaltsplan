@@ -38,6 +38,7 @@ function App() {
   const [xp, setXp] = useState(0);
   const [tasks, setTasks] = useState([]);
   const [rewards, setRewards] = useState([]);
+  const [showLevelUp, setShowLevelUp] = useState(false);
   const [level, setLevel] = useState(1);
   const [xpProgress, setXpProgress] = useState(0);
   const [xpToNext, setXpToNext] = useState(40);
@@ -124,7 +125,6 @@ function App() {
 
     loadData();
   }, [selectedUser]);
-
   const calculateLevel = (totalXP) => {
     let lvl = 1;
     let required = levelThresholds[0];
@@ -133,117 +133,53 @@ function App() {
       required += levelThresholds[lvl - 1];
     }
     const prevRequired = lvl <= 1 ? 0 : levelThresholds.slice(0, lvl - 1).reduce((a, b) => a + b, 0);
+
+    if (lvl > level) {
+      setShowLevelUp(true);
+      setTimeout(() => setShowLevelUp(false), 3000);
+    }
+
     setLevel(lvl);
     setXpToNext(required - prevRequired);
     setXpProgress(totalXP - prevRequired);
   };
 
-  const handleComplete = async (task, action) => {
-    if (!selectedUser) return;
+  const handleReset = async () => {
+    if (!window.confirm("Willst du wirklich alles zurücksetzen?")) return;
 
-    const taskRef = doc(db, "tasks", task.id);
-    const userRef = doc(db, "users", selectedUser.id);
-    const isMulti = task.name === "Tisch decken & abdecken" || task.targetCount;
-    const current = task.count || 0;
-    const target = task.targetCount || 3;
+    const tasksSnap = await getDocs(collection(db, "tasks"));
+    const usersSnap = await getDocs(collection(db, "users"));
 
-    if (isMulti) {
-      if (action === "add" && current < target) {
-        const newCount = current + 1;
-        const updates = { count: newCount };
-        if (newCount === target) updates.doneBy = selectedUser.name;
-
-        await updateDoc(taskRef, updates);
-        await updateDoc(userRef, {
-          points: increment(task.points),
-          xp: increment(task.points),
-        });
-
-        const newPoints = points + task.points;
-        const newXP = xp + task.points;
-        setPoints(newPoints);
-        setXp(newXP);
-        calculateLevel(newXP);
-
-        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...updates } : t));
-      }
-
-      if (action === "remove" && current > 0) {
-        const newCount = current - 1;
-        const updates = {
-          count: newCount,
-          doneBy: newCount < target ? "" : task.doneBy,
-        };
-
-        await updateDoc(taskRef, updates);
-        await updateDoc(userRef, {
-          points: increment(-task.points),
-          xp: increment(-task.points),
-        });
-
-        const newPoints = points - task.points;
-        const newXP = xp - task.points;
-        setPoints(newPoints);
-        setXp(newXP);
-        calculateLevel(newXP);
-
-        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...updates } : t));
-      }
-
-      return;
-    }
-
-    const isDone = !!task.doneBy;
-    if (!isDone) {
+    for (const taskDoc of tasksSnap.docs) {
+      const taskRef = doc(db, "tasks", taskDoc.id);
       await updateDoc(taskRef, {
-        doneBy: selectedUser.name,
-        availableFrom: task.repeatInterval
-          ? new Date(Date.now() + task.repeatInterval * 86400000).toISOString().split("T")[0]
-          : ""
+        doneBy: "",
+        count: 0,
+        availableFrom: "",
+        lastResetDate: "2025-05-03",
       });
-
-      await updateDoc(userRef, {
-        points: increment(task.points),
-        xp: increment(task.points),
-      });
-
-      const newPoints = points + task.points;
-      const newXP = xp + task.points;
-      setPoints(newPoints);
-      setXp(newXP);
-      calculateLevel(newXP);
-
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, doneBy: selectedUser.name } : t));
-    } else if (task.doneBy === selectedUser.name) {
-      await updateDoc(taskRef, { doneBy: "" });
-      await updateDoc(userRef, {
-        points: increment(-task.points),
-        xp: increment(-task.points),
-      });
-
-      const newPoints = points - task.points;
-      const newXP = xp - task.points;
-      setPoints(newPoints);
-      setXp(newXP);
-      calculateLevel(newXP);
-
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, doneBy: "" } : t));
-    }
-  };
-
-  const handleRedeem = async (cost) => {
-    if (points < cost) {
-      alert("Nicht genug Punkte!");
-      return;
     }
 
-    const userRef = doc(db, "users", selectedUser.id);
-    await updateDoc(userRef, { points: increment(-cost) });
-    setPoints(points - cost);
+    for (const userDoc of usersSnap.docs) {
+      const userRef = doc(db, "users", userDoc.id);
+      await updateDoc(userRef, {
+        points: 0,
+        xp: 0,
+      });
+    }
+
+    alert("Alle Aufgaben und Punkte wurden zurückgesetzt.");
+    window.location.reload();
   };
 
   return (
     <div className="app-wrapper">
+      {showLevelUp && (
+        <div className="level-up-popup">
+          🎉 Level {level} erreicht – {levelNames[level - 1]}!
+        </div>
+      )}
+
       <header>
         {selectedUser && (
           <button
@@ -259,11 +195,15 @@ function App() {
         <h1>Haushaltsplan</h1>
         {selectedUser && (
           <button
-  className="menu-button"
-  onClick={() => alert("Menü kommt bald!")}
->
-  ☰
-</button>
+            className="menu-button"
+            onClick={() => {
+              const action = prompt("Menü:\n1 = Reset (Entwicklerfunktion)");
+              if (action === "1") handleReset();
+              else alert("Menü kommt bald!");
+            }}
+          >
+            ☰
+          </button>
         )}
       </header>
 
@@ -292,7 +232,6 @@ function App() {
           </div>
         </div>
       )}
-
       {!selectedUser ? (
         <UserList onUserSelect={setSelectedUser} />
       ) : view === "tasks" ? (
@@ -310,15 +249,18 @@ function App() {
               const target = task.targetCount || 3;
               const isDone = isMulti ? current >= target : !!task.doneBy;
               const canUndo = task.doneBy === selectedUser.name;
-              const locked = task.repeatInterval && task.doneBy && task.availableFrom && task.availableFrom > new Date().toISOString().split("T")[0];
+              const locked =
+                task.repeatInterval &&
+                task.doneBy &&
+                task.availableFrom &&
+                task.availableFrom > new Date().toISOString().split("T")[0];
 
               return (
                 <div key={task.id} className={`task ${isDone ? "done" : "open"}`}>
                   <div className="task-text">
-                  <div className={`task-title ${isDone ? "strikethrough" : ""}`}>
-  {task.name}
-</div>
-
+                    <div className={`task-title ${isDone ? "strikethrough" : ""}`}>
+                      {task.name}
+                    </div>
 
                     {isMulti && (
                       <div className="multi-circles">
@@ -342,14 +284,14 @@ function App() {
 
                   {!locked && isMulti && (!isDone || task.doneBy === selectedUser.name) && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-{!isDone && (
-  <button
-    className="done-button"
-    onClick={() => handleComplete(task, "add")}
-  >
-    +{task.points}
-  </button>
-)}
+                      {!isDone && (
+                        <button
+                          className="done-button"
+                          onClick={() => handleComplete(task, "add")}
+                        >
+                          +{task.points}
+                        </button>
+                      )}
                       {current > 0 && (
                         <button
                           className="done-button grey"
@@ -363,12 +305,11 @@ function App() {
 
                   {!locked && !isMulti && (!isDone || canUndo) && (
                     <button
-  className={`done-button ${isDone ? "grey" : ""}`}
-  onClick={() => handleComplete(task)}
->
-  {isDone ? "Rückgängig" : `+${task.points}`}
-</button>
-
+                      className={`done-button ${isDone ? "grey" : ""}`}
+                      onClick={() => handleComplete(task)}
+                    >
+                      {isDone ? "Rückgängig" : `+${task.points}`}
+                    </button>
                   )}
                 </div>
               );
@@ -380,7 +321,9 @@ function App() {
           {rewards.map((reward) => (
             <div key={reward.id} className="task reward">
               <div className="task-text">
-                <div className="task-title">{reward.name} (-{reward.cost})</div>
+                <div className="task-title">
+                  {reward.name} (-{reward.cost})
+                </div>
               </div>
               <button
                 className="done-button"

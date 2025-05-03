@@ -322,3 +322,38 @@ header h1 {
   color: white;
   padding: 0 14px;
 }
+.level-up-popup {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: gold;
+  color: black;
+  padding: 20px 30px;
+  border-radius: 12px;
+  font-size: 1.4em;
+  font-weight: bold;
+  z-index: 9999;
+  animation: pop-in-out 3s ease forwards;
+  box-shadow: 0 0 20px 5px rgba(255, 215, 0, 0.7);
+  text-align: center;
+}
+
+@keyframes pop-in-out {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.8);
+  }
+  10% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.8);
+  }
+}
+
