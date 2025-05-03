@@ -54,11 +54,16 @@ header {
   text-align: center;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 1000;
+  width: 100%;
+  max-width: 390px; /* exakt wie .app-wrapper */
+  left: 50%;
+  transform: translateX(-50%);
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
 }
+
 header h1 {
   font-size: 1.5rem;
   color: white;
@@ -76,7 +81,7 @@ header h1 {
 
 /* Platzhalter unter fixem Header */
 .top-gap {
-  height: 80px;
+  height: 50px;
   background: var(--profile-bg);
   flex-shrink: 0;
 }
