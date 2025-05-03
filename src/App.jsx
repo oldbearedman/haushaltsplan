@@ -1,72 +1,94 @@
-import React, { useState } from "react";
+// src/App.jsx
+import { useState, useEffect } from "react";
+import { db } from "./firebase";
+import {
+  doc,
+  collection,
+  getDoc,
+  getDocs,
+  updateDoc,
+  increment
+} from "firebase/firestore";
 import "./App.css";
 
-const tasks = [
-  { id: 1, text: "Staubsaugen", points: 30 },
-  { id: 2, text: "Abwaschen", points: 20 },
-  { id: 3, text: "Wäsche waschen", points: 50 },
-  { id: 4, text: "Müll rausbringen", points: 15 },
-  { id: 5, text: "Fenster putzen", points: 40 },
-  { id: 6, text: "Einkaufen", points: 25 },
-  { id: 7, text: "Boden wischen", points: 30 },
-  { id: 8, text: "Gartenarbeit", points: 35 },
-  { id: 9, text: "Bad putzen", points: 50 },
-  { id: 10, text: "Küche aufräumen", points: 40 }
-];
+const users = ["Brandon", "Olivia", "Taylor"];
 
 function App() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [points, setPoints] = useState(0);
-  const [completedTasks, setCompletedTasks] = useState([]);
+  const [tasks, setTasks] = useState([]);
 
-  const handleTaskComplete = (taskId, taskPoints) => {
-    if (completedTasks.includes(taskId)) {
-      // Wenn die Aufgabe bereits erledigt ist, wird sie wieder als nicht erledigt markiert
-      setCompletedTasks(completedTasks.filter(id => id !== taskId));
-      setPoints(points - taskPoints); // Punkte wieder abziehen
-    } else {
-      // Wenn die Aufgabe noch nicht erledigt ist, wird sie als erledigt markiert
-      setCompletedTasks([...completedTasks, taskId]);
-      setPoints(points + taskPoints); // Punkte hinzufügen
-    }
+  useEffect(() => {
+    if (!selectedUser) return;
+
+    const fetchData = async () => {
+      const userRef = doc(db, "users", selectedUser);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        setPoints(userSnap.data().points || 0);
+      }
+
+      const tasksRef = collection(db, "users", selectedUser, "tasks");
+      const tasksSnap = await getDocs(tasksRef);
+      const taskList = tasksSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setTasks(taskList);
+    };
+
+    fetchData();
+  }, [selectedUser]);
+
+  const handleComplete = async (taskId, taskPoints) => {
+    const taskRef = doc(db, "users", selectedUser, "tasks", taskId);
+    await updateDoc(taskRef, { done: true });
+
+    const userRef = doc(db, "users", selectedUser);
+    await updateDoc(userRef, {
+      points: increment(taskPoints)
+    });
+
+    setTasks(prev =>
+      prev.map(t =>
+        t.id === taskId ? { ...t, done: true } : t
+      )
+    );
+    setPoints(prev => prev + taskPoints);
   };
 
-  return (
-    <div className="app-wrapper">
-      <header>
+  if (!selectedUser) {
+    return (
+      <div className="app">
         <h1>Haushaltsplan</h1>
-      </header>
+        {users.map(name => (
+          <button key={name} onClick={() => setSelectedUser(name)}>
+            {name}
+          </button>
+        ))}
+      </div>
+    );
+  }
 
-      {!selectedUser ? (
-        <div className="name-select">
-          <button className="name-button" onClick={() => setSelectedUser("Taylor")}>Taylor</button>
-          <button className="name-button" onClick={() => setSelectedUser("Olivia")}>Olivia</button>
-          <button className="name-button" onClick={() => setSelectedUser("Brandon")}>Brandon</button>
-        </div>
-      ) : (
-        <div className="task-view">
-          <div className="points-display">
-            Punkte: {points}
-          </div>
-
-          <div className="task-list">
-            {tasks.map((task) => (
+  return (
+    <div className="app">
+      <h1>Haushaltsplan</h1>
+      <div className="points">Punkte: {points}</div>
+      <div className="task-list">
+        {tasks.map(task => (
           <div
-              key={task.id}
-  className={`task ${completedTasks.includes(task.id) ? "done" : "open"}`}
->
-  <div className="task-text">{task.text}</div>
-  <div className="done-button" onClick={() => handleTaskComplete(task.id, task.points)}>
-    {completedTasks.includes(task.id) ? "Erledigt" : `+${task.points}`}
-  </div>
-</div>
-
-            ))}
+            key={task.id}
+            className={`task ${task.done ? "done" : "todo"}`}
+          >
+            <span>{task.name} ({task.points > 0 ? "+" : ""}{task.points})</span>
+            {!task.done && (
+              <button onClick={() => handleComplete(task.id, task.points)}>
+                Erledigt
+              </button>
+            )}
           </div>
-
-          {tasks.length > 5 && <div className="scroll-message">Nach unten scrollen, um mehr Aufgaben zu sehen.</div>}
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
