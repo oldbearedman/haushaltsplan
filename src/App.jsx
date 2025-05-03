@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 
 const levelThresholds = Array.from({ length: 99 }, (_, i) =>
-  i === 0 ? 40 : 40 + i * 20 + i * 5
+  40 + i * 15
 );
 
 function App() {
@@ -156,10 +156,8 @@ function App() {
 
       <div className="top-gap" />
 
-      {!selectedUser ? (
-        <UserList onUserSelect={setSelectedUser} />
-      ) : (
-        <>
+      {selectedUser && (
+        <div className="fixed-stats">
           <div className="level-display">
             <div className="level-info">Level {level}</div>
             <div className="xp-bar">
@@ -172,80 +170,83 @@ function App() {
               XP: {xpProgress} / {xpToNext}
             </div>
           </div>
-
           <div className="points-display">Punkte: {points}</div>
+        </div>
+      )}
 
-          <div className="task-list">
-            {tasks
-              .sort((a, b) => {
-                const doneA = !!a.doneBy || (a.count >= a.targetCount);
-                const doneB = !!b.doneBy || (b.count >= b.targetCount);
-                return doneA - doneB;
-              })
-              .map((task) => {
-                const isMulti = task.name === "Tisch decken & abräumen";
-                const current = task.count || 0;
-                const target = task.targetCount || 3;
-                const isDone = isMulti ? current >= target : !!task.doneBy;
-                const canUndo = task.doneBy === selectedUser.name;
+      {!selectedUser ? (
+        <UserList onUserSelect={setSelectedUser} />
+      ) : (
+        <div className="task-list">
+          {tasks
+            .sort((a, b) => {
+              const doneA = !!a.doneBy || (a.count >= a.targetCount);
+              const doneB = !!b.doneBy || (b.count >= b.targetCount);
+              return doneA - doneB;
+            })
+            .map((task) => {
+              const isMulti = task.name === "Tisch decken & abräumen";
+              const current = task.count || 0;
+              const target = task.targetCount || 3;
+              const isDone = isMulti ? current >= target : !!task.doneBy;
+              const canUndo = task.doneBy === selectedUser.name;
 
-                return (
-                  <div key={task.id} className={`task ${isDone ? "done" : "open"}`}>
-                    <div className="task-text">
-                      <div className={`task-title ${isDone ? "strikethrough" : ""}`}>
-                        {task.name} (+{task.points})
-                      </div>
-
-                      {isMulti && (
-                        <div className="multi-circles">
-                          {[...Array(target)].map((_, i) => (
-                            <span
-                              key={i}
-                              className={`circle ${i < current ? "filled" : ""}`}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {isDone && (
-                        <div className="done-by">Erledigt von {task.doneBy}</div>
-                      )}
+              return (
+                <div key={task.id} className={`task ${isDone ? "done" : "open"}`}>
+                  <div className="task-text">
+                    <div className={`task-title ${isDone ? "strikethrough" : ""}`}>
+                      {task.name} (+{task.points})
                     </div>
 
-                    {isMulti && (!isDone || task.doneBy === selectedUser.name) && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        {!isDone && (
-                          <button
-                            className="done-button"
-                            onClick={() => handleComplete(task, "add")}
-                          >
-                            Erledigt
-                          </button>
-                        )}
-                        {current > 0 && (
-                          <button
-                            className="done-button grey"
-                            onClick={() => handleComplete(task, "remove")}
-                          >
-                            Rückgängig
-                          </button>
-                        )}
+                    {isMulti && (
+                      <div className="multi-circles">
+                        {[...Array(target)].map((_, i) => (
+                          <span
+                            key={i}
+                            className={`circle ${i < current ? "filled" : ""}`}
+                          />
+                        ))}
                       </div>
                     )}
 
-                    {!isMulti && (!isDone || canUndo) && (
-                      <button
-                        className={`done-button ${isDone ? "grey" : ""}`}
-                        onClick={() => handleComplete(task)}
-                      >
-                        {isDone ? "Rückgängig" : "Erledigt"}
-                      </button>
+                    {isDone && (
+                      <div className="done-by">Erledigt von {task.doneBy}</div>
                     )}
                   </div>
-                );
-              })}
-          </div>
-        </>
+
+                  {isMulti && (!isDone || task.doneBy === selectedUser.name) && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {!isDone && (
+                        <button
+                          className="done-button"
+                          onClick={() => handleComplete(task, "add")}
+                        >
+                          Erledigt
+                        </button>
+                      )}
+                      {current > 0 && (
+                        <button
+                          className="done-button grey"
+                          onClick={() => handleComplete(task, "remove")}
+                        >
+                          Rückgängig
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {!isMulti && (!isDone || canUndo) && (
+                    <button
+                      className={`done-button ${isDone ? "grey" : ""}`}
+                      onClick={() => handleComplete(task)}
+                    >
+                      {isDone ? "Rückgängig" : "Erledigt"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+        </div>
       )}
     </div>
   );
