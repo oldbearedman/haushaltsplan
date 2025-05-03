@@ -106,7 +106,7 @@ header h1 {
   padding: 30px 20px;
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 10px;
   align-items: center;
   background: var(--profile-bg);
 }
