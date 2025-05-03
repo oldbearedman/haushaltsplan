@@ -10,10 +10,17 @@ import {
   increment
 } from "firebase/firestore";
 
+const levelThresholds = Array.from({ length: 99 }, (_, i) =>
+  i === 0 ? 40 : 40 + i * 20 + i * 5
+);
+
 function App() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [points, setPoints] = useState(0);
   const [tasks, setTasks] = useState([]);
+  const [level, setLevel] = useState(1);
+  const [xpProgress, setXpProgress] = useState(0);
+  const [xpToNext, setXpToNext] = useState(40);
 
   useEffect(() => {
     const loadData = async () => {
@@ -22,7 +29,9 @@ function App() {
       const usersSnap = await getDocs(collection(db, "users"));
       const currentUser = usersSnap.docs.find(u => u.id === selectedUser.id);
       if (currentUser) {
-        setPoints(currentUser.data().points || 0);
+        const totalPoints = currentUser.data().points || 0;
+        setPoints(totalPoints);
+        calculateLevel(totalPoints);
       }
 
       const tasksSnap = await getDocs(collection(db, "tasks"));
@@ -35,6 +44,20 @@ function App() {
 
     loadData();
   }, [selectedUser]);
+
+  const calculateLevel = (totalXP) => {
+    let lvl = 1;
+    let required = levelThresholds[0];
+    while (lvl < levelThresholds.length && totalXP >= required) {
+      lvl++;
+      required += levelThresholds[lvl - 1];
+    }
+    const prevRequired =
+      lvl <= 1 ? 0 : levelThresholds.slice(0, lvl - 1).reduce((a, b) => a + b, 0);
+    setLevel(lvl);
+    setXpToNext(required - prevRequired);
+    setXpProgress(totalXP - prevRequired);
+  };
 
   const handleComplete = async (task, action) => {
     if (!selectedUser) return;
@@ -49,36 +72,36 @@ function App() {
       if (action === "add" && current < target) {
         const newCount = current + 1;
         const updates = { count: newCount };
-      
+
         if (newCount === target) {
           updates.doneBy = selectedUser.name;
         }
-      
+
         await updateDoc(taskRef, updates);
         await updateDoc(userRef, { points: increment(task.points) });
-        setPoints(p => p + task.points);
-      
+        const newPoints = points + task.points;
+        setPoints(newPoints);
+        calculateLevel(newPoints);
+
         setTasks(prev =>
           prev.map(t =>
             t.id === task.id ? { ...t, ...updates } : t
           )
         );
-      }      
+      }
 
       if (action === "remove" && current > 0) {
         const newCount = current - 1;
-        const wasDone = current === target && task.doneBy === selectedUser.name;
-
         const updates = {
           count: newCount,
           doneBy: newCount < target ? "" : task.doneBy,
         };
 
-        await updateDoc(userRef, { points: increment(-task.points) });
-        setPoints(p => p - task.points);
-        
-
         await updateDoc(taskRef, updates);
+        await updateDoc(userRef, { points: increment(-task.points) });
+        const newPoints = points - task.points;
+        setPoints(newPoints);
+        calculateLevel(newPoints);
 
         setTasks(prev =>
           prev.map(t =>
@@ -95,22 +118,28 @@ function App() {
       await updateDoc(taskRef, { doneBy: selectedUser.name });
       await updateDoc(userRef, { points: increment(task.points) });
 
+      const newPoints = points + task.points;
+      setPoints(newPoints);
+      calculateLevel(newPoints);
+
       setTasks(prev =>
         prev.map(t =>
           t.id === task.id ? { ...t, doneBy: selectedUser.name } : t
         )
       );
-      setPoints(prev => prev + task.points);
     } else if (task.doneBy === selectedUser.name) {
       await updateDoc(taskRef, { doneBy: "" });
       await updateDoc(userRef, { points: increment(-task.points) });
+
+      const newPoints = points - task.points;
+      setPoints(newPoints);
+      calculateLevel(newPoints);
 
       setTasks(prev =>
         prev.map(t =>
           t.id === task.id ? { ...t, doneBy: "" } : t
         )
       );
-      setPoints(prev => prev - task.points);
     }
   };
 
@@ -131,7 +160,21 @@ function App() {
         <UserList onUserSelect={setSelectedUser} />
       ) : (
         <>
+          <div className="level-display">
+            <div className="level-info">Level {level}</div>
+            <div className="xp-bar">
+              <div
+                className="xp-fill"
+                style={{ width: `${(xpProgress / xpToNext) * 100}%` }}
+              ></div>
+            </div>
+            <div className="xp-label">
+              XP: {xpProgress} / {xpToNext}
+            </div>
+          </div>
+
           <div className="points-display">Punkte: {points}</div>
+
           <div className="task-list">
             {tasks
               .sort((a, b) => {
