@@ -52,13 +52,13 @@ header {
   background: var(--header-bg);
   padding: 20px;
   text-align: center;
-  position: relative; /* <-- NEU */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 1000;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border-top-left-radius: var(--radius);
-  border-top-right-radius: var(--radius);
 }
-
 header h1 {
   font-size: 1.5rem;
   color: white;
