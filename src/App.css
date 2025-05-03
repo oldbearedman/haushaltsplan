@@ -72,14 +72,16 @@ header h1 {
 }
 .back-button {
   position: absolute;
-  left: 20px;
-  top: 22px;
-  font-size: 1.2rem;
+  left: 0px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.6rem;
   background: none;
   border: none;
   cursor: pointer;
   color: white;
 }
+
 
 /* Platzhalter unter fixem Header */
 .top-gap {
@@ -300,4 +302,23 @@ header h1 {
 
 .task.reward .done-button:hover {
   background: #f57c00;
+}
+.section-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #111;
+  margin: 10px 0 20px;
+  text-align: center;
+}
+.menu-button {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.6rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+  padding: 0 14px;
 }

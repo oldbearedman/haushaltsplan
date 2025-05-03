@@ -10,9 +10,7 @@ import {
   increment
 } from "firebase/firestore";
 
-const levelThresholds = Array.from({ length: 99 }, (_, i) =>
-  40 + i * 15
-);
+const levelThresholds = Array.from({ length: 99 }, (_, i) => 40 + i * 15);
 
 function App() {
   const [selectedUser, setSelectedUser] = useState(null);
@@ -64,8 +62,7 @@ function App() {
       lvl++;
       required += levelThresholds[lvl - 1];
     }
-    const prevRequired =
-      lvl <= 1 ? 0 : levelThresholds.slice(0, lvl - 1).reduce((a, b) => a + b, 0);
+    const prevRequired = lvl <= 1 ? 0 : levelThresholds.slice(0, lvl - 1).reduce((a, b) => a + b, 0);
     setLevel(lvl);
     setXpToNext(required - prevRequired);
     setXpProgress(totalXP - prevRequired);
@@ -84,27 +81,21 @@ function App() {
       if (action === "add" && current < target) {
         const newCount = current + 1;
         const updates = { count: newCount };
-
-        if (newCount === target) {
-          updates.doneBy = selectedUser.name;
-        }
+        if (newCount === target) updates.doneBy = selectedUser.name;
 
         await updateDoc(taskRef, updates);
         await updateDoc(userRef, {
           points: increment(task.points),
           xp: increment(task.points),
         });
+
         const newPoints = points + task.points;
         const newXP = xp + task.points;
         setPoints(newPoints);
         setXp(newXP);
         calculateLevel(newXP);
 
-        setTasks(prev =>
-          prev.map(t =>
-            t.id === task.id ? { ...t, ...updates } : t
-          )
-        );
+        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...updates } : t));
       }
 
       if (action === "remove" && current > 0) {
@@ -118,13 +109,10 @@ function App() {
         await updateDoc(userRef, {
           points: increment(-task.points),
         });
+
         const newPoints = points - task.points;
         setPoints(newPoints);
-        setTasks(prev =>
-          prev.map(t =>
-            t.id === task.id ? { ...t, ...updates } : t
-          )
-        );
+        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...updates } : t));
       }
 
       return;
@@ -144,11 +132,7 @@ function App() {
       setXp(newXP);
       calculateLevel(newXP);
 
-      setTasks(prev =>
-        prev.map(t =>
-          t.id === task.id ? { ...t, doneBy: selectedUser.name } : t
-        )
-      );
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, doneBy: selectedUser.name } : t));
     } else if (task.doneBy === selectedUser.name) {
       await updateDoc(taskRef, { doneBy: "" });
       await updateDoc(userRef, {
@@ -162,11 +146,7 @@ function App() {
       setXp(newXP);
       calculateLevel(newXP);
 
-      setTasks(prev =>
-        prev.map(t =>
-          t.id === task.id ? { ...t, doneBy: "" } : t
-        )
-      );
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, doneBy: "" } : t));
     }
   };
 
@@ -195,7 +175,10 @@ function App() {
             ←
           </button>
         )}
-        <h1>Haushaltsplan</h1>
+<h1>Haushaltsplan</h1>
+<button className="menu-button" onClick={() => alert("Menü kommt bald!")}>
+  ☰
+</button>
       </header>
 
       <div className="top-gap" />
@@ -228,6 +211,7 @@ function App() {
         <UserList onUserSelect={setSelectedUser} />
       ) : view === "tasks" ? (
         <div className="task-list">
+          <div className="section-title">Aufgabenliste</div>
           {tasks
             .sort((a, b) => {
               const doneA = !!a.doneBy || (a.count >= a.targetCount);
@@ -299,19 +283,20 @@ function App() {
         </div>
       ) : (
         <div className="task-list">
-{rewards.map((reward) => (
-  <div key={reward.id} className="task reward">
-    <div className="task-text">
-      <div className="task-title">{reward.name} (-{reward.cost})</div>
-    </div>
-    <button
-      className="done-button"
-      onClick={() => handleRedeem(reward.cost)}
-    >
-      Einlösen
-    </button>
-  </div>
-))}
+          <div className="section-title">Punkte einlösen</div>
+          {rewards.map((reward) => (
+            <div key={reward.id} className="task reward">
+              <div className="task-text">
+                <div className="task-title">{reward.name} (-{reward.cost})</div>
+              </div>
+              <button
+                className="done-button"
+                onClick={() => handleRedeem(reward.cost)}
+              >
+                Einlösen
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
