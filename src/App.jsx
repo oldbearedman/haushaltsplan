@@ -19,10 +19,11 @@ function App() {
   const [points, setPoints] = useState(0);
   const [xp, setXp] = useState(0);
   const [tasks, setTasks] = useState([]);
+  const [rewards, setRewards] = useState([]);
   const [level, setLevel] = useState(1);
   const [xpProgress, setXpProgress] = useState(0);
   const [xpToNext, setXpToNext] = useState(40);
-  const [view, setView] = useState("tasks"); // "tasks" oder "rewards"
+  const [view, setView] = useState("tasks");
 
   useEffect(() => {
     const loadData = async () => {
@@ -44,6 +45,13 @@ function App() {
         ...doc.data(),
       }));
       setTasks(allTasks);
+
+      const rewardsSnap = await getDocs(collection(db, "rewards"));
+      const allRewards = rewardsSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setRewards(allRewards);
     };
 
     loadData();
@@ -291,39 +299,19 @@ function App() {
         </div>
       ) : (
         <div className="task-list">
-          <div className="task open">
-            <div className="task-text">
-              <div className="task-title">5 Minuten Pause (-50)</div>
+          {rewards.map((reward) => (
+            <div key={reward.id} className="task open">
+              <div className="task-text">
+                <div className="task-title">{reward.name} (-{reward.cost})</div>
+              </div>
+              <button
+                className="done-button"
+                onClick={() => handleRedeem(reward.cost)}
+              >
+                Einlösen
+              </button>
             </div>
-            <button
-              className="done-button"
-              onClick={() => handleRedeem(50)}
-            >
-              Einlösen
-            </button>
-          </div>
-          <div className="task open">
-            <div className="task-text">
-              <div className="task-title">1 Stunde zocken (-100)</div>
-            </div>
-            <button
-              className="done-button"
-              onClick={() => handleRedeem(100)}
-            >
-              Einlösen
-            </button>
-          </div>
-          <div className="task open">
-            <div className="task-text">
-              <div className="task-title">Eis essen (-200)</div>
-            </div>
-            <button
-              className="done-button"
-              onClick={() => handleRedeem(200)}
-            >
-              Einlösen
-            </button>
-          </div>
+          ))}
         </div>
       )}
     </div>
