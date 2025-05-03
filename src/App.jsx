@@ -22,7 +22,7 @@ function App() {
   const [level, setLevel] = useState(1);
   const [xpProgress, setXpProgress] = useState(0);
   const [xpToNext, setXpToNext] = useState(40);
-  const [showRedeemModal, setShowRedeemModal] = useState(false);
+  const [view, setView] = useState("tasks"); // "tasks" oder "rewards"
 
   useEffect(() => {
     const loadData = async () => {
@@ -147,19 +147,19 @@ function App() {
         points: increment(-task.points),
         xp: increment(-task.points),
       });
-    
+
       const newPoints = points - task.points;
       const newXP = xp - task.points;
       setPoints(newPoints);
       setXp(newXP);
       calculateLevel(newXP);
-    
+
       setTasks(prev =>
         prev.map(t =>
           t.id === task.id ? { ...t, doneBy: "" } : t
         )
       );
-    }    
+    }
   };
 
   const handleRedeem = async (cost) => {
@@ -171,14 +171,19 @@ function App() {
     const userRef = doc(db, "users", selectedUser.id);
     await updateDoc(userRef, { points: increment(-cost) });
     setPoints(points - cost);
-    setShowRedeemModal(false);
   };
 
   return (
     <div className="app-wrapper">
       <header>
         {selectedUser && (
-          <button className="back-button" onClick={() => setSelectedUser(null)}>
+          <button
+            className="back-button"
+            onClick={() => {
+              if (view === "rewards") setView("tasks");
+              else setSelectedUser(null);
+            }}
+          >
             ←
           </button>
         )}
@@ -203,7 +208,7 @@ function App() {
           </div>
           <div
             className="points-display"
-            onClick={() => setShowRedeemModal(true)}
+            onClick={() => setView("rewards")}
             style={{ cursor: "pointer" }}
           >
             Punkte: {points}
@@ -213,7 +218,7 @@ function App() {
 
       {!selectedUser ? (
         <UserList onUserSelect={setSelectedUser} />
-      ) : (
+      ) : view === "tasks" ? (
         <div className="task-list">
           {tasks
             .sort((a, b) => {
@@ -284,17 +289,40 @@ function App() {
               );
             })}
         </div>
-      )}
-
-      {showRedeemModal && (
-        <div className="modal-overlay" onClick={() => setShowRedeemModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Punkte einlösen</h2>
-            <p>Wähle eine Belohnung:</p>
-            <button onClick={() => handleRedeem(50)}>5 Minuten Pause (-50)</button>
-            <button onClick={() => handleRedeem(100)}>1 Stunde zocken (-100)</button>
-            <button onClick={() => handleRedeem(200)}>Eis essen (-200)</button>
-            <button onClick={() => setShowRedeemModal(false)}>Abbrechen</button>
+      ) : (
+        <div className="task-list">
+          <div className="task open">
+            <div className="task-text">
+              <div className="task-title">5 Minuten Pause (-50)</div>
+            </div>
+            <button
+              className="done-button"
+              onClick={() => handleRedeem(50)}
+            >
+              Einlösen
+            </button>
+          </div>
+          <div className="task open">
+            <div className="task-text">
+              <div className="task-title">1 Stunde zocken (-100)</div>
+            </div>
+            <button
+              className="done-button"
+              onClick={() => handleRedeem(100)}
+            >
+              Einlösen
+            </button>
+          </div>
+          <div className="task open">
+            <div className="task-text">
+              <div className="task-title">Eis essen (-200)</div>
+            </div>
+            <button
+              className="done-button"
+              onClick={() => handleRedeem(200)}
+            >
+              Einlösen
+            </button>
           </div>
         </div>
       )}
