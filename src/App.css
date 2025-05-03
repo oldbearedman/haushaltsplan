@@ -52,10 +52,10 @@ header {
   background: var(--header-bg);
   padding: 20px;
   text-align: center;
-  position: relative;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-  z-index: 1;
-  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 header h1 {
   font-size: 1.5rem;
@@ -72,7 +72,7 @@ header h1 {
   color: white;
 }
 
-/* Punktestand (Badge-Stil) */
+/* Punktestand */
 .points-display {
   background: #333;
   color: white;
@@ -85,7 +85,7 @@ header h1 {
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
-/* Namen / Bildauswahl */
+/* Profil-Auswahl untereinander */
 .name-select {
   flex: 1;
   overflow-y: auto;
