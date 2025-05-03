@@ -1,4 +1,3 @@
-// src/UserList.jsx
 import React, { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
@@ -24,9 +23,15 @@ const UserList = ({ onUserSelect }) => {
       {users.map((user) => (
         <button
           key={user.id}
+          className="profile-button"
           onClick={() => onUserSelect(user)}
         >
-          {user.name}
+          <img
+            src={`/profiles/${user.name.toLowerCase()}.jpg`}
+            alt={user.name}
+            className="profile-image"
+          />
+          <div className="profile-name">{user.name}</div>
         </button>
       ))}
     </div>
