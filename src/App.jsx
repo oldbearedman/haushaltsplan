@@ -9,6 +9,14 @@ import {
   doc,
   increment
 } from "firebase/firestore";
+import {
+  FaBroom,
+  FaUtensils,
+  FaTshirt,
+  FaGift,
+  FaToilet,
+  FaHandsWash,
+} from "react-icons/fa";
 
 const levelThresholds = Array.from({ length: 99 }, (_, i) => 40 + i * 15);
 
@@ -31,6 +39,16 @@ const levelNames = [
   "Heiliger Wischer", "Staubvernichter", "Sankt Ordnung", "Absolute Macht",
   ...Array(21).fill("Ultimativer Saubermann")
 ];
+
+const getIcon = (name) => {
+  const lower = name.toLowerCase();
+  if (lower.includes("tisch")) return <FaUtensils />;
+  if (lower.includes("wäsche")) return <FaTshirt />;
+  if (lower.includes("boden")) return <FaBroom />;
+  if (lower.includes("toilette") || lower.includes("bad")) return <FaToilet />;
+  if (lower.includes("hände")) return <FaHandsWash />;
+  return <FaBroom />;
+};
 
 function App() {
   const [selectedUser, setSelectedUser] = useState(null);
@@ -125,6 +143,7 @@ function App() {
 
     loadData();
   }, [selectedUser]);
+
   const calculateLevel = (totalXP) => {
     let lvl = 1;
     let required = levelThresholds[0];
@@ -172,11 +191,72 @@ function App() {
     window.location.reload();
   };
 
+  const handleComplete = async (task, mode = "toggle") => {
+    if (!selectedUser) return;
+
+    const taskRef = doc(db, "tasks", task.id);
+    const userRef = doc(db, "users", selectedUser.id);
+
+    let updatedTask = { ...task };
+    let pointChange = 0;
+    let xpChange = 0;
+
+    if (typeof task.targetCount === "number") {
+      let count = task.count || 0;
+
+      if (mode === "add" && count < task.targetCount) {
+        count++;
+        pointChange = task.points || 1;
+      } else if (mode === "remove" && count > 0) {
+        count--;
+        pointChange = -(task.points || 1);
+      }
+
+      updatedTask.count = count;
+      updatedTask.doneBy = count >= task.targetCount ? selectedUser.name : "";
+      await updateDoc(taskRef, {
+        count,
+        doneBy: updatedTask.doneBy,
+      });
+
+    } else {
+      const wasDone = !!task.doneBy;
+      const isOwn = task.doneBy === selectedUser.name;
+
+      if (wasDone && isOwn) {
+        updatedTask.doneBy = "";
+        pointChange = -(task.points || 1);
+      } else if (!wasDone) {
+        updatedTask.doneBy = selectedUser.name;
+        pointChange = task.points || 1;
+      }
+
+      await updateDoc(taskRef, {
+        doneBy: updatedTask.doneBy,
+      });
+    }
+
+    if (pointChange !== 0) {
+      await updateDoc(userRef, {
+        points: increment(pointChange),
+        xp: increment(pointChange),
+      });
+
+      setPoints((prev) => prev + pointChange);
+      const newXp = xp + pointChange;
+      setXp(newXp);
+      calculateLevel(newXp);
+    }
+
+    setTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, ...updatedTask } : t))
+    );
+  };
   return (
     <div className="app-wrapper">
       {showLevelUp && (
         <div className="level-up-popup">
-          🎉 Level {level} erreicht – {levelNames[level - 1]}!
+          🎉 Level {level} erreicht – {levelNames[level - 1]}! 🎉
         </div>
       )}
 
@@ -226,12 +306,12 @@ function App() {
           <div
             className="points-display"
             onClick={() => setView("rewards")}
-            style={{ cursor: "pointer" }}
           >
-            Punkte: {points}
+            🪙 {points}
           </div>
         </div>
       )}
+
       {!selectedUser ? (
         <UserList onUserSelect={setSelectedUser} />
       ) : view === "tasks" ? (
@@ -259,7 +339,7 @@ function App() {
                 <div key={task.id} className={`task ${isDone ? "done" : "open"}`}>
                   <div className="task-text">
                     <div className={`task-title ${isDone ? "strikethrough" : ""}`}>
-                      {task.name}
+                      {getIcon(task.name)} &nbsp; {task.name}
                     </div>
 
                     {isMulti && (
@@ -289,7 +369,7 @@ function App() {
                           className="done-button"
                           onClick={() => handleComplete(task, "add")}
                         >
-                          +{task.points}
+                          🪙 +{task.points}
                         </button>
                       )}
                       {current > 0 && (
@@ -308,7 +388,7 @@ function App() {
                       className={`done-button ${isDone ? "grey" : ""}`}
                       onClick={() => handleComplete(task)}
                     >
-                      {isDone ? "Rückgängig" : `+${task.points}`}
+                      {isDone ? "Rückgängig" : `🪙 +${task.points}`}
                     </button>
                   )}
                 </div>
@@ -322,6 +402,7 @@ function App() {
             <div key={reward.id} className="task reward">
               <div className="task-text">
                 <div className="task-title">
+                  <FaGift style={{ marginRight: "6px" }} />
                   {reward.name} (-{reward.cost})
                 </div>
               </div>
