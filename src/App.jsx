@@ -180,6 +180,7 @@ function App() {
         count: 0,
         availableFrom: "",
         lastResetDate: "2025-05-03",
+        progressByUser: {},
       });
     }
 
@@ -207,22 +208,38 @@ function App() {
 
     if (typeof task.targetCount === "number") {
       let count = task.count || 0;
+      let progressByUser = { ...(task.progressByUser || {}) };
+      let userProgress = progressByUser[selectedUser.name] || 0;
+
 
       if (mode === "add" && count < task.targetCount) {
         count++;
+        userProgress++;
         pointChange = task.points || 1;
-      } else if (mode === "remove" && count > 0) {
+        progressByUser[selectedUser.name] = userProgress;
+      } else if (mode === "remove" && userProgress > 0) {
         count--;
+        userProgress--;
         pointChange = -(task.points || 1);
+        if (userProgress === 0) {
+          delete progressByUser[selectedUser.name];
+        } else {
+          progressByUser[selectedUser.name] = userProgress;
+        }
       }
-
+      
       updatedTask.count = count;
+      updatedTask.progressByUser = progressByUser;
       updatedTask.doneBy = count >= task.targetCount ? selectedUser.name : "";
       updatedTask.lastDoneAt = count >= task.targetCount ? new Date().toISOString().split("T")[0] : "";
-            await updateDoc(taskRef, {
+      
+      await updateDoc(taskRef, {
         count,
         doneBy: updatedTask.doneBy,
+        lastDoneAt: updatedTask.lastDoneAt || "",
+        progressByUser,
       });
+      
 
     } else {
       const wasDone = !!task.doneBy;
@@ -556,14 +573,15 @@ setComplaints((prev) => {
                           🪙 +{task.points}
                         </button>
                       )}
-                      {current > 0 && (
-                        <button
-                          className="done-button grey"
-                          onClick={() => handleComplete(task, "remove")}
-                        >
-                          Rückgängig
-                        </button>
-                      )}
+                      {(task.progressByUser?.[selectedUser.name] || 0) > 0 && (
+  <button
+    className="done-button grey"
+    onClick={() => handleComplete(task, "remove")}
+  >
+    Rückgängig
+  </button>
+)}
+
                     </div>
                   )}
   
