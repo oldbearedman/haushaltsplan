@@ -64,6 +64,11 @@ function App() {
   const [complaints, setComplaints] = useState({});
   const [showComplaintBox, setShowComplaintBox] = useState(null);
   const [complaintText, setComplaintText] = useState("");
+  // 👇 Beim Profilwechsel alle offenen Beschwerde-Inputs schließen
+  useEffect(() => {
+    setShowComplaintBox(null);
+    setComplaintText("");
+  }, [selectedUser]);
 
 
   useEffect(() => {
@@ -389,7 +394,14 @@ setComplaints((prev) => {
               type="text"
               value={complaintText}
               onChange={(e) => setComplaintText(e.target.value)}
+              onBlur={(e) => {
+              // Wenn nichts eingegeben wurde und rausgeklickt, Box schließen
+              if (!e.target.value.trim()) {
+              setShowComplaintBox(null);
+              }
+              }}
               placeholder="Was stimmt nicht?"
+              
               style={{ width: "100%", padding: "6px", marginBottom: "4px" }}
             />
             <button
@@ -476,8 +488,10 @@ setComplaints((prev) => {
           <div className="tab-bar">
             <button
               className={`tab-button ${view === "tasks" ? "active" : ""}`}
-              onClick={() => setView("tasks")}
-            >
+              onClick={() => {
+                     setView("tasks");
+                    setShowComplaintBox(null); // 👈 hier alle offenen Complaint-Boxen schließen
+                   }}            >
               Aufgabenliste
             </button>
             <button
