@@ -1,0 +1,22 @@
+{
+    "name": "Haushaltsplan",
+    "short_name": "HausApp",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#f5f0e6",
+    "theme_color": "#a3702c",
+    "orientation": "portrait",
+    "icons": [
+      {
+        "src": "/icons/icon1-192.png",
+        "type": "image/png",
+        "sizes": "192x192"
+      },
+      {
+        "src": "/icons/icon1-512.png",
+        "type": "image/png",
+        "sizes": "512x512"
+      }
+    ]
+  }
+  
