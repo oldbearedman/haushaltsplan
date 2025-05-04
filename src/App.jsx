@@ -259,7 +259,7 @@ function App() {
           🎉 Level {level} erreicht – {levelNames[level - 1]}! 🎉
         </div>
       )}
-
+  
       <header>
         {selectedUser && (
           <button
@@ -286,32 +286,49 @@ function App() {
           </button>
         )}
       </header>
-
+  
       <div className="top-gap" />
-
+  
       {selectedUser && (
-        <div className="fixed-stats">
-          <div className="level-display">
-            <div className="level-info">Level {level} – {levelNames[level - 1]}</div>
-            <div className="xp-bar">
-              <div
-                className="xp-fill"
-                style={{ width: `${(xpProgress / xpToNext) * 100}%` }}
-              ></div>
+        <>
+          <div className="fixed-stats">
+            <div className="level-display">
+              <div className="level-info">Level {level} – {levelNames[level - 1]}</div>
+              <div className="xp-bar">
+                <div
+                  className="xp-fill"
+                  style={{ width: `${(xpProgress / xpToNext) * 100}%` }}
+                ></div>
+              </div>
+              <div className="xp-label">
+                XP: {xpProgress} / {xpToNext}
+              </div>
             </div>
-            <div className="xp-label">
-              XP: {xpProgress} / {xpToNext}
+            <div
+              className="points-display"
+              onClick={() => setView("rewards")}
+            >
+              🪙 {points}
             </div>
           </div>
-          <div
-            className="points-display"
-            onClick={() => setView("rewards")}
-          >
-            🪙 {points}
+  
+          <div className="tab-bar">
+            <button
+              className={`tab-button ${view === "tasks" ? "active" : ""}`}
+              onClick={() => setView("tasks")}
+            >
+              Aufgabenliste
+            </button>
+            <button
+              className={`tab-button ${view === "done" ? "active" : ""}`}
+              onClick={() => setView("done")}
+            >
+              Erledigt
+            </button>
           </div>
-        </div>
+        </>
       )}
-
+  
       {!selectedUser ? (
         <UserList onUserSelect={setSelectedUser} />
       ) : view === "tasks" ? (
@@ -334,14 +351,14 @@ function App() {
                 task.doneBy &&
                 task.availableFrom &&
                 task.availableFrom > new Date().toISOString().split("T")[0];
-
+  
               return (
                 <div key={task.id} className={`task ${isDone ? "done" : "open"}`}>
                   <div className="task-text">
                     <div className={`task-title ${isDone ? "strikethrough" : ""}`}>
                       {getIcon(task.name)} &nbsp; {task.name}
                     </div>
-
+  
                     {isMulti && (
                       <div className="multi-circles">
                         {[...Array(target)].map((_, i) => (
@@ -352,16 +369,16 @@ function App() {
                         ))}
                       </div>
                     )}
-
+  
                     {locked && (
                       <div className="done-by">Verfügbar ab: {task.availableFrom}</div>
                     )}
-
+  
                     {isDone && !locked && (
                       <div className="done-by">Erledigt von {task.doneBy}</div>
                     )}
                   </div>
-
+  
                   {!locked && isMulti && (!isDone || task.doneBy === selectedUser.name) && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                       {!isDone && (
@@ -382,7 +399,7 @@ function App() {
                       )}
                     </div>
                   )}
-
+  
                   {!locked && !isMulti && (!isDone || canUndo) && (
                     <button
                       className={`done-button ${isDone ? "grey" : ""}`}
@@ -394,6 +411,25 @@ function App() {
                 </div>
               );
             })}
+        </div>
+      ) : view === "done" ? (
+        <div className="task-list">
+          <div className="section-title">Erledigte Aufgaben</div>
+          {tasks
+            .filter((task) => !!task.doneBy || (task.count || 0) >= (task.targetCount || 1))
+            .sort((a, b) => (b.lastDoneAt || '').localeCompare(a.lastDoneAt || ''))
+            .map((task) => (
+              <div key={task.id} className="task done">
+                <div className="task-text">
+                  <div className="task-title">
+                    {getIcon(task.name)} &nbsp; {task.name}
+                  </div>
+                  <div className="done-by">
+                    Erledigt von {task.doneBy || "?"} am {task.lastDoneAt || "?"}
+                  </div>
+                </div>
+              </div>
+            ))}
         </div>
       ) : (
         <div className="task-list">
@@ -421,3 +457,4 @@ function App() {
 }
 
 export default App;
+  
