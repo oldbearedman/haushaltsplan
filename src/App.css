@@ -1,5 +1,3 @@
-/* Neues App-Design – modern, fokussiert, zentriert und rund */
-
 :root {
   --primary: #4a90e2;
   --primary-light: #b3d4fc;
@@ -50,7 +48,6 @@ body::-webkit-scrollbar {
   background-color: var(--background);
   position: relative;
 }
-
 header {
   height: 60px;
   padding: 0 16px;
@@ -134,7 +131,6 @@ header h1 {
   text-align: right;
   margin-top: 4px;
 }
-
 .points-display {
   background: var(--accent);
   color: white;
@@ -214,7 +210,6 @@ header h1 {
 .circle.filled {
   background: var(--primary);
 }
-
 .done-button {
   background: var(--primary);
   color: white;
@@ -234,6 +229,20 @@ header h1 {
 .done-button.grey {
   background: #ccc;
   color: #444;
+}
+
+.done-button.red {
+  background-color: transparent;
+  color: red;
+  font-size: 24px;
+  border: none;
+  cursor: pointer;
+  padding: 4px 10px;
+  transition: transform 0.1s ease-in-out;
+}
+
+.done-button.red:hover {
+  transform: scale(1.2);
 }
 
 .task.reward {
@@ -268,7 +277,6 @@ header h1 {
   animation: pop-in-out 3s ease forwards;
   white-space: nowrap;
 }
-
 .name-select {
   flex: 1;
   overflow-y: auto;
@@ -333,7 +341,21 @@ header h1 {
     transform: translate(-50%, -60%) scale(0.8);
   }
 }
-/* Tab-Umschaltung oben für Aufgaben/Erledigt */
+
+/* Zusätzlicher Stil für ältere Erledigungen */
+.section-divider {
+  margin-top: 20px;
+  border-top: 2px solid #ccc;
+  padding-top: 10px;
+}
+
+.task.done.older {
+  background-color: #f5f5f5;
+  color: #888;
+  border: 1px solid #ddd;
+  box-shadow: none;
+  opacity: 0.7;
+}
 .tab-bar {
   display: flex;
   justify-content: space-around;
@@ -348,18 +370,21 @@ header h1 {
 .tab-button {
   flex: 1;
   text-align: center;
-  padding: 8px 12px;
+  padding: 10px 0;
   border: none;
   background: none;
-  font-weight: bold;
+  font-weight: 600;
   font-size: 0.95rem;
   color: var(--text-muted);
   cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: color 0.2s, border-color 0.2s;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
 }
 
 .tab-button.active {
   color: var(--primary);
-  border-bottom: 2px solid var(--primary);
+  border-bottom: 3px solid var(--primary);
+  background-color: #e9f2fd;
+  border-radius: 12px;
+  margin: 0 8px;
 }

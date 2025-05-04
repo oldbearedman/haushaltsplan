@@ -61,6 +61,10 @@ function App() {
   const [xpProgress, setXpProgress] = useState(0);
   const [xpToNext, setXpToNext] = useState(40);
   const [view, setView] = useState("tasks");
+  const [complaints, setComplaints] = useState({});
+  const [showComplaintBox, setShowComplaintBox] = useState(null);
+  const [complaintText, setComplaintText] = useState("");
+
 
   useEffect(() => {
     const loadData = async () => {
@@ -214,7 +218,8 @@ function App() {
 
       updatedTask.count = count;
       updatedTask.doneBy = count >= task.targetCount ? selectedUser.name : "";
-      await updateDoc(taskRef, {
+      updatedTask.lastDoneAt = count >= task.targetCount ? new Date().toISOString().split("T")[0] : "";
+            await updateDoc(taskRef, {
         count,
         doneBy: updatedTask.doneBy,
       });
@@ -228,12 +233,22 @@ function App() {
         pointChange = -(task.points || 1);
       } else if (!wasDone) {
         updatedTask.doneBy = selectedUser.name;
-        pointChange = task.points || 1;
+        updatedTask.lastDoneAt = new Date().toISOString().split("T")[0];
+                pointChange = task.points || 1;
       }
 
-      await updateDoc(taskRef, {
+      const updateFields = {
         doneBy: updatedTask.doneBy,
-      });
+      };
+      
+      
+      if (updatedTask.lastDoneAt) {
+        updateFields.lastDoneAt = updatedTask.lastDoneAt;
+      }
+      await updateDoc(taskRef, updateFields);
+      
+      
+      
     }
 
     if (pointChange !== 0) {
@@ -251,7 +266,153 @@ function App() {
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, ...updatedTask } : t))
     );
+
+    // Beschwerde löschen, wenn Aufgabe neu erledigt oder zurückgesetzt wird
+setComplaints((prev) => {
+  const updated = { ...prev };
+  delete updated[task.id];
+  return updated;
+});
+
   };
+  const handleComplaint = (taskId) => {
+    setShowComplaintBox(taskId);
+  };
+  
+  const submitComplaint = (taskId) => {
+    if (!complaintText.trim()) return;
+    setComplaints(prev => ({
+      ...prev,
+      [taskId]: {
+        text: complaintText,
+        count: 1,
+        users: [selectedUser.name],
+      }
+    }));
+    setShowComplaintBox(null);
+    setComplaintText("");
+  };
+  
+  const approveComplaint = async (task) => {
+    const updatedTask = { ...task, doneBy: "", count: 0, lastDoneAt: "" };
+    const taskRef = doc(db, "tasks", task.id);
+  
+    await updateDoc(taskRef, {
+      doneBy: "",
+      count: 0,
+      lastDoneAt: "",
+    });
+  
+    // Punkte und XP beim ursprünglichen Nutzer abziehen
+    const usersSnap = await getDocs(collection(db, "users"));
+    const userDoc = usersSnap.docs.find((u) => u.data().name === task.doneBy);
+  
+    if (userDoc) {
+      const userRef = doc(db, "users", userDoc.id);
+      const pointsToRemove = -(task.points || 1);
+  
+      await updateDoc(userRef, {
+        points: increment(pointsToRemove),
+        xp: increment(pointsToRemove),
+      });
+  
+      if (userDoc.id === selectedUser.id) {
+        setPoints((prev) => prev + pointsToRemove);
+        const newXp = xp + pointsToRemove;
+        setXp(newXp);
+        calculateLevel(newXp);
+      }
+    }
+  
+    setTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? updatedTask : t))
+    );
+  
+    const newComplaints = { ...complaints };
+    delete newComplaints[task.id];
+    setComplaints(newComplaints);
+  };
+  const renderDoneTask = (task) => {
+    const isOwn = task.doneBy === selectedUser.name;
+    const isOther = task.doneBy && task.doneBy !== selectedUser.name;
+    const complaint = complaints[task.id];
+    const hasComplained = complaint?.users?.includes(selectedUser.name);
+    const canApprove =
+      complaint &&
+      !hasComplained &&
+      complaint.users.length === 1 &&
+      selectedUser.name !== task.doneBy;
+  
+    return (
+      <div key={task.id} className="task done">
+        <div className="task-text">
+          <div className="task-title">
+            {getIcon(task.name)} &nbsp; {task.name}
+            {complaint && (
+              <span style={{ marginLeft: "8px", fontSize: "0.9em", color: "red" }}>
+                {complaint.users.length}/2 🚨
+              </span>
+            )}
+          </div>
+          <div className="done-by">
+            Erledigt von {task.doneBy || "?"} am {task.lastDoneAt || "?"}
+          </div>
+          {complaint && (
+            <div style={{ color: "red", marginTop: "4px" }}>
+              ⚠️ {complaint.text}
+            </div>
+          )}
+        </div>
+  
+        {isOwn && (
+          <button
+            className="done-button grey"
+            onClick={() => handleComplete(task, "remove")}
+          >
+            Rückgängig
+          </button>
+        )}
+  
+        {isOther && !complaint && (
+          <button
+            className="done-button red"
+            style={{ fontSize: "1.4em", backgroundColor: "transparent", color: "red" }}
+            onClick={() => handleComplaint(task.id)}
+          >
+            🚨
+          </button>
+        )}
+  
+        {showComplaintBox === task.id && (
+          <div style={{ marginTop: "8px" }}>
+            <input
+              type="text"
+              value={complaintText}
+              onChange={(e) => setComplaintText(e.target.value)}
+              placeholder="Was stimmt nicht?"
+              style={{ width: "100%", padding: "6px", marginBottom: "4px" }}
+            />
+            <button
+              className="done-button red"
+              onClick={() => submitComplaint(task.id)}
+            >
+              Abschicken
+            </button>
+          </div>
+        )}
+  
+        {canApprove && (
+          <button
+            className="done-button red"
+            onClick={() => approveComplaint(task)}
+          >
+            Zustimmung
+          </button>
+        )}
+      </div>
+    );
+  };
+  
   return (
     <div className="app-wrapper">
       {showLevelUp && (
@@ -335,6 +496,12 @@ function App() {
         <div className="task-list">
           <div className="section-title">Aufgabenliste</div>
           {tasks
+            .filter((task) => {
+              const isMulti = typeof task.targetCount === "number";
+              const current = task.count || 0;
+              const target = task.targetCount || 1;
+              return isMulti ? current < target : !task.doneBy;
+            })
             .sort((a, b) => {
               const doneA = !!a.doneBy || (a.count >= a.targetCount);
               const doneB = !!b.doneBy || (b.count >= b.targetCount);
@@ -412,49 +579,64 @@ function App() {
               );
             })}
         </div>
-      ) : view === "done" ? (
-        <div className="task-list">
-          <div className="section-title">Erledigte Aufgaben</div>
-          {tasks
-            .filter((task) => !!task.doneBy || (task.count || 0) >= (task.targetCount || 1))
-            .sort((a, b) => (b.lastDoneAt || '').localeCompare(a.lastDoneAt || ''))
-            .map((task) => (
-              <div key={task.id} className="task done">
-                <div className="task-text">
-                  <div className="task-title">
-                    {getIcon(task.name)} &nbsp; {task.name}
-                  </div>
-                  <div className="done-by">
-                    Erledigt von {task.doneBy || "?"} am {task.lastDoneAt || "?"}
-                  </div>
-                </div>
-              </div>
-            ))}
+) : view === "done" ? (
+  <div className="task-list">
+    <div className="section-title">Heute erledigt</div>
+    {tasks
+      .filter((task) => {
+        const isMulti = typeof task.targetCount === "number";
+        const current = task.count || 0;
+        const target = task.targetCount || 1;
+        const isDone = isMulti ? current >= target : !!task.doneBy;
+        const today = new Date().toISOString().split("T")[0];
+        return isDone && task.lastDoneAt === today;
+      })
+      .sort((a, b) => (b.lastDoneAt || "").localeCompare(a.lastDoneAt || ""))
+      .map((task) => renderDoneTask(task))
+    }
+
+    <div className="section-divider"></div>
+    <div className="section-title">Früher erledigt</div>
+    {tasks
+      .filter((task) => {
+        const isMulti = typeof task.targetCount === "number";
+        const current = task.count || 0;
+        const target = task.targetCount || 1;
+        const isDone = isMulti ? current >= target : !!task.doneBy;
+        const today = new Date().toISOString().split("T")[0];
+        return isDone && task.lastDoneAt && task.lastDoneAt < today;
+      })
+      .sort((a, b) => (b.lastDoneAt || "").localeCompare(a.lastDoneAt || ""))
+      .map((task) => (
+        <div className="task done older" key={task.id}>
+          {renderDoneTask(task)}
         </div>
-      ) : (
-        <div className="task-list">
-          <div className="section-title">Punkte einlösen</div>
-          {rewards.map((reward) => (
-            <div key={reward.id} className="task reward">
-              <div className="task-text">
-                <div className="task-title">
-                  <FaGift style={{ marginRight: "6px" }} />
-                  {reward.name} (-{reward.cost})
-                </div>
-              </div>
-              <button
-                className="done-button"
-                onClick={() => handleRedeem(reward.cost)}
-              >
-                Einlösen
-              </button>
-            </div>
-          ))}
+      ))
+    }
+  </div>
+) : (
+  <div className="task-list">
+    <div className="section-title">Punkte einlösen</div>
+    {rewards.map((reward) => (
+      <div key={reward.id} className="task reward">
+        <div className="task-text">
+          <div className="task-title">
+            <FaGift style={{ marginRight: "6px" }} />
+            {reward.name} (-{reward.cost})
+          </div>
         </div>
-      )}
+        <button
+          className="done-button"
+          onClick={() => handleRedeem(reward.cost)}
+        >
+          Einlösen
+        </button>
+      </div>
+    ))}
+  </div>
+)}
     </div>
   );
 }
 
 export default App;
-  
