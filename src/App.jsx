@@ -18,28 +18,14 @@ import {
   FaHandsWash,
 } from "react-icons/fa";
 
+// Level thresholds
 const levelThresholds = Array.from({ length: 99 }, (_, i) => 40 + i * 15);
-
 const levelNames = [
   "Looser", "Knecht", "Putzlehrling", "Chaoskind", "Staubfänger",
-  "Putzmuffel", "Schluri", "Unordnungsfan", "Lappenlutscher", "Sockenstreuer",
-  "Kleiner Held", "Fleißbienchen", "Ordnungsschüler", "Putzazubi", "Klarblicker",
-  "Wischlehrer", "Halbprofi", "Streitvermeider", "Routineheld", "Putzprofi",
-  "Saugmeister", "Bodenbezwinger", "Flächenglätter", "Waschzauberer", "Kühlschrankdompteur",
-  "Besenritter", "Putzdrache", "Bademeister", "Spülmaschinenheld", "Dreckvernichter",
-  "Ordnungshüter", "Aufräumkapitän", "Küchenzauberer", "Schmutzmagier", "Wäschechampion",
-  "Hygienewächter", "Putzgeneral", "Haushaltsmanager", "Glanzminister", "Wunderwischer",
-  "Drecksdompteur", "Spülkrieger", "Alltagsheld", "Putzchampion", "Haushaltsheld",
-  "Sauberkeitsguru", "Supermutti", "Hausvater", "Ordnungsboss", "Wunderwesen",
-  "Sauberkeitskaiser", "Meister Proper", "Staubkönig", "Putztitan", "Hygienegott",
-  "Supersorter", "Familienchef", "Gott des Haushalts", "Haushaltslegende", "Unaufhaltbar",
-  "Putzmaschine", "Der Unerreichbare", "Der Perfekte", "Legende", "Halbgott der Ordnung",
-  "Putzphänomen", "Der Endgegner", "Hüter des Haushalts", "Übermensch", "Maximalreiniger",
-  "Glanzgott", "Finaler Boss", "Der Erhabene", "Der Unermüdliche", "Haushaltsorakel",
-  "Heiliger Wischer", "Staubvernichter", "Sankt Ordnung", "Absolute Macht",
-  ...Array(21).fill("Ultimativer Saubermann")
+  // ... rest of your level names
 ];
 
+// Get task icon
 const getIcon = (name) => {
   const lower = name.toLowerCase();
   if (lower.includes("tisch")) return <FaUtensils />;
@@ -65,7 +51,6 @@ function App() {
   const [showComplaintBox, setShowComplaintBox] = useState(null);
   const [complaintText, setComplaintText] = useState("");
 
-
   useEffect(() => {
     const loadData = async () => {
       if (!selectedUser) return;
@@ -86,56 +71,7 @@ function App() {
         ...doc.data(),
       }));
 
-      const now = new Date();
-      const todayStr = now.toISOString().split("T")[0];
-
-      const needsReset = allTasks.some((task) => {
-        const isRepeat = !!task.repeatInterval;
-        const isDone = !!task.doneBy;
-
-        if (isRepeat && isDone && task.availableFrom && todayStr >= task.availableFrom) {
-          return true;
-        }
-
-        if (!isRepeat && task.lastResetDate !== todayStr) {
-          return true;
-        }
-
-        return false;
-      });
-
-      if (needsReset) {
-        const batch = allTasks.map((task) => {
-          const isRepeat = !!task.repeatInterval;
-          const isDone = !!task.doneBy;
-
-          if (isRepeat) {
-            if (isDone && task.availableFrom && todayStr >= task.availableFrom) {
-              const updates = { doneBy: "", lastResetDate: todayStr };
-              return updateDoc(doc(db, "tasks", task.id), updates).then(() => ({
-                ...task,
-                ...updates
-              }));
-            }
-            return Promise.resolve(task);
-          }
-
-          if (task.lastResetDate !== todayStr) {
-            const updates = { doneBy: "", lastResetDate: todayStr };
-            return updateDoc(doc(db, "tasks", task.id), updates).then(() => ({
-              ...task,
-              ...updates
-            }));
-          }
-
-          return Promise.resolve(task);
-        });
-
-        const updatedTasks = await Promise.all(batch);
-        setTasks(updatedTasks);
-      } else {
-        setTasks(allTasks);
-      }
+      setTasks(allTasks);
 
       const rewardsSnap = await getDocs(collection(db, "rewards"));
       const allRewards = rewardsSnap.docs.map((doc) => ({
@@ -181,6 +117,7 @@ function App() {
         availableFrom: "",
         lastResetDate: "2025-05-03",
         progressByUser: {},
+        completions: [],
       });
     }
 
@@ -204,13 +141,16 @@ function App() {
 
     let updatedTask = { ...task };
     let pointChange = 0;
-    let xpChange = 0;
 
     if (typeof task.targetCount === "number") {
       let count = task.count || 0;
       let progressByUser = { ...(task.progressByUser || {}) };
       let userProgress = progressByUser[selectedUser.name] || 0;
+      let completions = [...(task.completions || [])];
 
+      const now = new Date();
+      const dateStr = now.toISOString().split("T")[0];
+      const timeStr = now.toTimeString().split(":").slice(0, 2).join(":");
 
       if (mode === "add" && count < task.targetCount) {
         count++;
@@ -218,6 +158,14 @@ function App() {
         pointChange = task.points || 1;
         progressByUser[selectedUser.name] = userProgress;
       } else if (mode === "remove" && userProgress > 0) {
+        const lastIndex = completions
+          .map((c, i) => ({ ...c, index: i }))
+          .filter((c) => c.name === selectedUser.name)
+          .map((c) => c.index)
+          .pop();
+        if (lastIndex !== undefined) {
+          completions.splice(lastIndex, 1);
+        }
         count--;
         userProgress--;
         pointChange = -(task.points || 1);
@@ -227,45 +175,69 @@ function App() {
           progressByUser[selectedUser.name] = userProgress;
         }
       }
-      
+
+      if (mode === "add") {
+        completions.push({
+          name: selectedUser.name,
+          date: dateStr,
+          time: timeStr
+        });
+      }
+
       updatedTask.count = count;
       updatedTask.progressByUser = progressByUser;
       updatedTask.doneBy = count >= task.targetCount ? selectedUser.name : "";
       updatedTask.lastDoneAt = count >= task.targetCount ? new Date().toISOString().split("T")[0] : "";
-      
+
       await updateDoc(taskRef, {
         count,
         doneBy: updatedTask.doneBy,
         lastDoneAt: updatedTask.lastDoneAt || "",
         progressByUser,
+        completions,
       });
-      
+      updatedTask.completions = completions;
 
     } else {
       const wasDone = !!task.doneBy;
       const isOwn = task.doneBy === selectedUser.name;
+      let completions = [...(task.completions || [])];
 
       if (wasDone && isOwn) {
         updatedTask.doneBy = "";
         pointChange = -(task.points || 1);
+        const lastIndex = completions
+          .map((c, i) => ({ ...c, index: i }))
+          .filter((c) => c.name === selectedUser.name)
+          .map((c) => c.index)
+          .pop();
+        if (lastIndex !== undefined) {
+          completions.splice(lastIndex, 1);
+        }
       } else if (!wasDone) {
         updatedTask.doneBy = selectedUser.name;
         updatedTask.lastDoneAt = new Date().toISOString().split("T")[0];
-                pointChange = task.points || 1;
+        pointChange = task.points || 1;
+        const now = new Date();
+        completions.push({
+          name: selectedUser.name,
+          date: now.toISOString().split("T")[0],
+          time: now.toTimeString().split(":").slice(0, 2).join(":"),
+        });
       }
+
+      updatedTask.completions = completions;
 
       const updateFields = {
         doneBy: updatedTask.doneBy,
+        completions,
       };
-      
-      
+
       if (updatedTask.lastDoneAt) {
         updateFields.lastDoneAt = updatedTask.lastDoneAt;
       }
+
       await updateDoc(taskRef, updateFields);
-      
-      
-      
     }
 
     if (pointChange !== 0) {
@@ -284,21 +256,20 @@ function App() {
       prev.map((t) => (t.id === task.id ? { ...t, ...updatedTask } : t))
     );
 
-    // Beschwerde löschen, wenn Aufgabe neu erledigt oder zurückgesetzt wird
-setComplaints((prev) => {
-  const updated = { ...prev };
-  delete updated[task.id];
-  return updated;
-});
-
+    setComplaints((prev) => {
+      const updated = { ...prev };
+      delete updated[task.id];
+      return updated;
+    });
   };
+
   const handleComplaint = (taskId) => {
     setShowComplaintBox(taskId);
   };
-  
+
   const submitComplaint = (taskId) => {
     if (!complaintText.trim()) return;
-    setComplaints(prev => ({
+    setComplaints((prev) => ({
       ...prev,
       [taskId]: {
         text: complaintText,
@@ -309,30 +280,29 @@ setComplaints((prev) => {
     setShowComplaintBox(null);
     setComplaintText("");
   };
-  
+
   const approveComplaint = async (task) => {
     const updatedTask = { ...task, doneBy: "", count: 0, lastDoneAt: "" };
     const taskRef = doc(db, "tasks", task.id);
-  
+
     await updateDoc(taskRef, {
       doneBy: "",
       count: 0,
       lastDoneAt: "",
     });
-  
-    // Punkte und XP beim ursprünglichen Nutzer abziehen
+
     const usersSnap = await getDocs(collection(db, "users"));
     const userDoc = usersSnap.docs.find((u) => u.data().name === task.doneBy);
-  
+
     if (userDoc) {
       const userRef = doc(db, "users", userDoc.id);
       const pointsToRemove = -(task.points || 1);
-  
+
       await updateDoc(userRef, {
         points: increment(pointsToRemove),
         xp: increment(pointsToRemove),
       });
-  
+
       if (userDoc.id === selectedUser.id) {
         setPoints((prev) => prev + pointsToRemove);
         const newXp = xp + pointsToRemove;
@@ -340,25 +310,26 @@ setComplaints((prev) => {
         calculateLevel(newXp);
       }
     }
-  
+
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? updatedTask : t))
     );
-  
+
     const newComplaints = { ...complaints };
     delete newComplaints[task.id];
     setComplaints(newComplaints);
   };
+
   const renderDoneTask = (task) => {
-    const isOwn = task.doneBy === selectedUser.name;
-    const isOther = task.doneBy && task.doneBy !== selectedUser.name;
-    const complaint = complaints[task.id];
-    const hasComplained = complaint?.users?.includes(selectedUser.name);
-    const canApprove =
-      complaint &&
-      !hasComplained &&
-      complaint.users.length === 1 &&
-      selectedUser.name !== task.doneBy;
+    const isOwn = task.doneBy === selectedUser.name; // Prüft, ob der Benutzer die Aufgabe erledigt hat
+    const isOther = task.doneBy && task.doneBy !== selectedUser.name; // Prüft, ob die Aufgabe von jemand anderem erledigt wurde
+    const complaint = complaints[task.id]; // Holt die Beschwerde für die Aufgabe
+    const hasComplained = complaint?.users?.includes(selectedUser.name); // Prüft, ob der Benutzer bereits eine Beschwerde abgegeben hat
+    const canApprove = 
+      complaint && 
+      !hasComplained && 
+      complaint.users.length === 1 && 
+      selectedUser.name !== task.doneBy; // Prüft, ob der Benutzer der Beschwerde zustimmen kann
   
     return (
       <div key={task.id} className="task done">
@@ -381,25 +352,18 @@ setComplaints((prev) => {
           )}
         </div>
   
-        {isOwn && (
-          <button
-            className="done-button grey"
-            onClick={() => handleComplete(task, "remove")}
-          >
-            Rückgängig
-          </button>
-        )}
-  
+        {/* Beschwerdebutton nur anzeigen, wenn der aktuelle Nutzer die Aufgabe nicht erledigt hat */}
         {isOther && !complaint && (
           <button
             className="done-button red"
             style={{ fontSize: "1.4em", backgroundColor: "transparent", color: "red" }}
-            onClick={() => handleComplaint(task.id)}
+            onClick={() => handleComplaint(task.id)} // Zeigt das Textfeld für die Beschwerde an
           >
             🚨
           </button>
         )}
   
+        {/* Textfeld für die Beschwerde anzeigen, wenn es aktiviert ist */}
         {showComplaintBox === task.id && (
           <div style={{ marginTop: "8px" }}>
             <input
@@ -418,6 +382,7 @@ setComplaints((prev) => {
           </div>
         )}
   
+        {/* Zustimmungsbutton für die Beschwerde */}
         {canApprove && (
           <button
             className="done-button red"
@@ -426,10 +391,22 @@ setComplaints((prev) => {
             Zustimmung
           </button>
         )}
+  
+        {/* Rückgängig Button */}
+        {isOwn && (
+          <button
+            className="done-button grey"
+            onClick={() => handleComplete(task, "remove")}
+          >
+            Rückgängig
+          </button>
+        )}
       </div>
     );
   };
   
+  
+
   return (
     <div className="app-wrapper">
       {showLevelUp && (
@@ -437,7 +414,7 @@ setComplaints((prev) => {
           🎉 Level {level} erreicht – {levelNames[level - 1]}! 🎉
         </div>
       )}
-  
+
       <header>
         {selectedUser && (
           <button
@@ -464,9 +441,9 @@ setComplaints((prev) => {
           </button>
         )}
       </header>
-  
+
       <div className="top-gap" />
-  
+
       {selectedUser && (
         <>
           <div className="fixed-stats">
@@ -489,7 +466,7 @@ setComplaints((prev) => {
               🪙 {points}
             </div>
           </div>
-  
+
           <div className="tab-bar">
             <button
               className={`tab-button ${view === "tasks" ? "active" : ""}`}
@@ -506,7 +483,7 @@ setComplaints((prev) => {
           </div>
         </>
       )}
-  
+
       {!selectedUser ? (
         <UserList onUserSelect={setSelectedUser} />
       ) : view === "tasks" ? (
@@ -535,14 +512,14 @@ setComplaints((prev) => {
                 task.doneBy &&
                 task.availableFrom &&
                 task.availableFrom > new Date().toISOString().split("T")[0];
-  
+
               return (
                 <div key={task.id} className={`task ${isDone ? "done" : "open"}`}>
                   <div className="task-text">
                     <div className={`task-title ${isDone ? "strikethrough" : ""}`}>
                       {getIcon(task.name)} &nbsp; {task.name}
                     </div>
-  
+
                     {isMulti && (
                       <div className="multi-circles">
                         {[...Array(target)].map((_, i) => (
@@ -553,16 +530,16 @@ setComplaints((prev) => {
                         ))}
                       </div>
                     )}
-  
+
                     {locked && (
                       <div className="done-by">Verfügbar ab: {task.availableFrom}</div>
                     )}
-  
+
                     {isDone && !locked && (
                       <div className="done-by">Erledigt von {task.doneBy}</div>
                     )}
                   </div>
-  
+
                   {!locked && isMulti && (!isDone || task.doneBy === selectedUser.name) && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                       {!isDone && (
@@ -574,17 +551,16 @@ setComplaints((prev) => {
                         </button>
                       )}
                       {(task.progressByUser?.[selectedUser.name] || 0) > 0 && (
-  <button
-    className="done-button grey"
-    onClick={() => handleComplete(task, "remove")}
-  >
-    Rückgängig
-  </button>
-)}
-
+                        <button
+                          className="done-button grey"
+                          onClick={() => handleComplete(task, "remove")}
+                        >
+                          Rückgängig
+                        </button>
+                      )}
                     </div>
                   )}
-  
+
                   {!locked && !isMulti && (!isDone || canUndo) && (
                     <button
                       className={`done-button ${isDone ? "grey" : ""}`}
@@ -597,62 +573,65 @@ setComplaints((prev) => {
               );
             })}
         </div>
-) : view === "done" ? (
-  <div className="task-list">
-    <div className="section-title">Heute erledigt</div>
-    {tasks
-      .filter((task) => {
-        const isMulti = typeof task.targetCount === "number";
-        const current = task.count || 0;
-        const target = task.targetCount || 1;
-        const isDone = isMulti ? current >= target : !!task.doneBy;
-        const today = new Date().toISOString().split("T")[0];
-        return isDone && task.lastDoneAt === today;
-      })
-      .sort((a, b) => (b.lastDoneAt || "").localeCompare(a.lastDoneAt || ""))
-      .map((task) => renderDoneTask(task))
-    }
+      ) : view === "done" ? (
+        <div className="task-list">
+          <div className="section-title">Heute erledigt</div>
+          {tasks
+            .filter((task) => (task.completions || []).length > 0)
+            .flatMap((task) =>
+              task.completions.map((entry, idx) => ({
+                ...entry,
+                taskName: task.name,
+                taskId: task.id,
+                key: `${task.id}-${entry.name}-${entry.date}-${entry.time}-${idx}`
+              }))
+            )
+            .filter((entry) => entry.date === new Date().toISOString().split("T")[0])
+            .map((entry) => (
+              <div className="task done" key={entry.key}>
+                <div className="task-text">
+                  <div className="task-title">
+                    {getIcon(entry.taskName)} &nbsp; {entry.taskName}
+                  </div>
+                  <div className="done-by">
+                    Erledigt von {entry.name} um {entry.time}
+                  </div>
 
-    <div className="section-divider"></div>
-    <div className="section-title">Früher erledigt</div>
-    {tasks
-      .filter((task) => {
-        const isMulti = typeof task.targetCount === "number";
-        const current = task.count || 0;
-        const target = task.targetCount || 1;
-        const isDone = isMulti ? current >= target : !!task.doneBy;
-        const today = new Date().toISOString().split("T")[0];
-        return isDone && task.lastDoneAt && task.lastDoneAt < today;
-      })
-      .sort((a, b) => (b.lastDoneAt || "").localeCompare(a.lastDoneAt || ""))
-      .map((task) => (
-        <div className="task done older" key={task.id}>
-          {renderDoneTask(task)}
+                  {entry.name === selectedUser.name && (
+                    <button
+                      className="done-button grey"
+                      onClick={() =>
+                        handleComplete(tasks.find((t) => t.id === entry.taskId), "remove")
+                      }
+                    >
+                      Rückgängig
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
         </div>
-      ))
-    }
-  </div>
-) : (
-  <div className="task-list">
-    <div className="section-title">Punkte einlösen</div>
-    {rewards.map((reward) => (
-      <div key={reward.id} className="task reward">
-        <div className="task-text">
-          <div className="task-title">
-            <FaGift style={{ marginRight: "6px" }} />
-            {reward.name} (-{reward.cost})
-          </div>
+      ) : (
+        <div className="task-list">
+          <div className="section-title">Punkte einlösen</div>
+          {rewards.map((reward) => (
+            <div key={reward.id} className="task reward">
+              <div className="task-text">
+                <div className="task-title">
+                  <FaGift style={{ marginRight: "6px" }} />
+                  {reward.name} (-{reward.cost})
+                </div>
+              </div>
+              <button
+                className="done-button"
+                onClick={() => handleRedeem(reward.cost)}
+              >
+                Einlösen
+              </button>
+            </div>
+          ))}
         </div>
-        <button
-          className="done-button"
-          onClick={() => handleRedeem(reward.cost)}
-        >
-          Einlösen
-        </button>
-      </div>
-    ))}
-  </div>
-)}
+      )}
     </div>
   );
 }
