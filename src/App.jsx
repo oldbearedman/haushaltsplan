@@ -1,63 +1,65 @@
 // src/App.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
-import getIcon      from "./utils/getIcon";
-import UserList     from "./UserList";
-import useUsers     from "./hooks/useUsers";
-import useTasks     from "./hooks/useTasks";
-import useLevel     from "./hooks/useLevel";
+import getIcon from "./utils/getIcon";
+import UserList from "./UserList";
+import useUsers from "./hooks/useUsers";
+import useTasks from "./hooks/useTasks";
+import useLevel from "./hooks/useLevel";
 import { collection, getDocs, updateDoc, doc, increment } from "firebase/firestore";
-import { db }       from "./firebase";
-import confetti     from "canvas-confetti";
+import { db } from "./firebase";
+import confetti from "canvas-confetti";
 
-import Header       from "./components/Header";
-import Stats        from "./components/Stats";
-import TabBar       from "./components/TabBar";
-import TaskList     from "./components/TaskList";
-import DoneList     from "./components/DoneList";
-import PinModal     from "./components/PinModal";
-import AdminPanel   from "./components/AdminPanel";
-import TaskForm     from "./components/TaskForm";
+import Header from "./components/Header";
+import Stats from "./components/Stats";
+import TabBar from "./components/TabBar";
+import TaskList from "./components/TaskList";
+import DoneList from "./components/DoneList";
+import PinModal from "./components/PinModal";
+import AdminPanel from "./components/AdminPanel";
+import TaskForm from "./components/TaskForm";
 
 export default function App() {
   const [selectedUser, setSelectedUser] = useState(null);
-  const [showLevelUp,  setShowLevelUp]  = useState(false);
-  const [prevLevel,    setPrevLevel]    = useState(0);
-  const [adminMode,    setAdminMode]    = useState(false);
-  const [pinOpen,      setPinOpen]      = useState(false);
-  const [pinInput,     setPinInput]     = useState("");
-  const [view,         setView]         = useState("tasks");
-  const [points,       setPoints]       = useState(0);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [view, setView] = useState("tasks");
+  const [points, setPoints] = useState(0);
 
   const users = useUsers();
-  // useTasks erwartet jetzt die aktuelle userId
   const { tasks, loading, error } = useTasks(selectedUser?.id);
   const { level, levelName, xpProgress, xpToNext, addXp, setXp } = useLevel(0);
 
-  // Beim User-Wechsel Punkte/XP laden & Admin-Modus resetten
+  // Ref, um den vorherigen Level zu merken
+  const prevLevelRef = useRef(level);
+
+  // Beim User-Wechsel initial XP/Points setzen
   useEffect(() => {
     setAdminMode(false);
     if (!selectedUser) return;
     (async () => {
-      const snap  = await getDocs(collection(db, "users"));
+      const snap = await getDocs(collection(db, "users"));
       const meDoc = snap.docs.find(d => d.id === selectedUser.id);
-      const me    = meDoc?.data() || {};
+      const me = meDoc?.data() || {};
       setPoints(me.points || 0);
       setXp(me.xp || 0);
+      prevLevelRef.current = me.xp != null ? me.xp : level;
     })();
-  }, [selectedUser, setXp]);
+  }, [selectedUser, setXp, level]);
 
-  // Level-Up Popup + Konfetti
+  // Konfetti einmal pro Level-Aufstieg
   useEffect(() => {
-    if (prevLevel > 0 && level > prevLevel) {
+    const prev = prevLevelRef.current;
+    if (level > prev) {
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.4 } });
       setShowLevelUp(true);
       setTimeout(() => setShowLevelUp(false), 3000);
     }
-    setPrevLevel(level);
-  }, [level, prevLevel]);
+    prevLevelRef.current = level;
+  }, [level]);
 
-  // Voll-Reset (Admin)
   const handleResetAll = async () => {
     if (!window.confirm("Alles zurücksetzen?")) return;
     const [tSnap, uSnap] = await Promise.all([
@@ -76,12 +78,11 @@ export default function App() {
     window.location.reload();
   };
 
-  // Aufgabe abschließen / zurücksetzen
   const handleComplete = async (task, mode = "toggle") => {
     if (!selectedUser) return;
-    const tRef  = doc(db, "tasks", task.id);
-    const uRef  = doc(db, "users", selectedUser.id);
-    let delta   = 0;
+    const tRef = doc(db, "tasks", task.id);
+    const uRef = doc(db, "users", selectedUser.id);
+    let delta = 0;
     const multi = typeof task.repeatInterval === "number";
 
     if (mode === "remove") {
@@ -91,15 +92,13 @@ export default function App() {
         availableFrom: ""
       });
       delta = -task.points * (multi ? (task.targetCount || 1) : 1);
-    }
-    else if (multi) {
-      const newCount     = (task.count || 0) + 1;
-      const done         = newCount >= task.targetCount;
-      if (done) delta    = task.points;
+    } else if (multi) {
+      const newCount = (task.count || 0) + 1;
+      const done = newCount >= task.targetCount;
+      if (done) delta = task.points;
       const nextAvailable = done
         ? new Date(Date.now() + task.repeatInterval * 86400000)
-            .toISOString()
-            .slice(0, 10)
+            .toISOString().slice(0,10)
         : "";
       await updateDoc(tRef, {
         count: newCount,
@@ -108,8 +107,7 @@ export default function App() {
         lastDoneAt: done ? new Date().toISOString().slice(0,10) : "",
         availableFrom: nextAvailable
       });
-    }
-    else {
+    } else {
       if (!task.doneBy) {
         delta = task.points;
         await updateDoc(tRef, {
@@ -127,7 +125,6 @@ export default function App() {
     }
   };
 
-  // PIN-Modal Eingabe
   const handlePinInput = digit => {
     const next = pinInput + digit;
     setPinInput(next);
@@ -139,7 +136,6 @@ export default function App() {
     }
   };
 
-  // Header Back-Button
   const handleBack = () => {
     if (view === "rewards") setView("tasks");
     else setSelectedUser(null);
@@ -147,7 +143,6 @@ export default function App() {
 
   return (
     <div className="app-wrapper">
-      {/* Level-Up Popup */}
       {showLevelUp && (
         <div className="level-up-popup">
           <div>🎉 Level {level} erreicht! 🎉</div>
@@ -155,14 +150,12 @@ export default function App() {
         </div>
       )}
 
-      {/* Header */}
       <Header
         selectedUser={selectedUser}
         onBack={handleBack}
         onOpenAdmin={() => { setPinOpen(true); setPinInput(""); }}
       />
 
-      {/* Stats */}
       {selectedUser && (
         <Stats
           level={level}
@@ -174,12 +167,10 @@ export default function App() {
         />
       )}
 
-      {/* TabBar */}
       {selectedUser && !adminMode && (
         <TabBar view={view} setView={setView} />
       )}
 
-      {/* Main Content */}
       <main className="content">
         {!selectedUser ? (
           <UserList onUserSelect={setSelectedUser} />
@@ -203,16 +194,15 @@ export default function App() {
             users={users}
             onComplete={handleComplete}
           />
-                  ) : view==="done" ? (
-                      <DoneList
-                        tasks={tasks}
-                        currentUserId={selectedUser.id}
-                        onUndo={t => handleComplete(t, "remove")}
-                      />
+        ) : view === "done" ? (
+          <DoneList
+            tasks={tasks}
+            currentUserId={selectedUser.id}
+            onUndo={t => handleComplete(t, "remove")}
+          />
         ) : null}
       </main>
 
-      {/* PIN-Modal */}
       {pinOpen && (
         <PinModal
           currentPinLength={pinInput.length}
