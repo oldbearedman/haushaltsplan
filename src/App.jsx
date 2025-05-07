@@ -198,14 +198,15 @@ export default function App() {
           <TaskList
             tasks={tasks}
             currentUserId={selectedUser.id}
+            users={users}
             onComplete={handleComplete}
           />
-        ) : view === "done" ? (
-          <DoneList
-            tasks={tasks}
-            currentUserId={selectedUser.id}
-            onUndo={t => handleComplete(t, "remove")}
-          />
+                  ) : view==="done" ? (
+                      <DoneList
+                        tasks={tasks}
+                        currentUserName={selectedUser.name}     // neu
+                        onUndo={t => handleComplete(t, "remove")}
+                      />
         ) : null}
       </main>
 
