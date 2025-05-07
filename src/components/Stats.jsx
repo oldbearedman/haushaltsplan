@@ -1,3 +1,4 @@
+// src/components/Stats.jsx
 import React from "react";
 
 export default function Stats({
@@ -8,11 +9,25 @@ export default function Stats({
   points,
   onRedeemTab
 }) {
+  // Pro 2 Level ein Stern, maximal 37 Sterne
+  const starIndex = Math.min(Math.ceil(level / 2), 37);
+
   return (
     <div className="fixed-stats">
       <div className="level-display">
         <div className="level-info">
           Level {level} – {levelName}
+          <img
+            src={`/icons/star${starIndex}.webp`}
+            alt={`Stern ${starIndex}`}
+            style={{
+              width: "9px",
+              height: "9px",
+              marginLeft: "9px",
+              position: "relative",
+              top: "-2px"    // hebt den Stern leicht an
+            }}
+          />
         </div>
         <div className="xp-bar">
           <div

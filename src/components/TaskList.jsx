@@ -10,19 +10,20 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
   const locked = [];
   const doneTasks = [];
 
+  // Aufgaben in Gruppen aufteilen
   tasks.forEach(task => {
     const assigneeId = (task.assignedTo || [])[0];
     const isIntervalLocked = task.availableFrom && task.availableFrom > today;
     const isPersonal = assigneeId !== "all";
     const isOwn = assigneeId === currentUserId;
     const isLocked = isIntervalLocked || (isPersonal && !isOwn);
-
     const enriched = { ...task, assigneeId };
     if (task.doneBy) doneTasks.push(enriched);
     else if (isLocked) locked.push(enriched);
     else available.push(enriched);
   });
 
+  // rendert das Profilbild/en
   const renderAssignee = assigneeId => {
     if (assigneeId === "all") {
       return (
@@ -65,9 +66,12 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
     }
   };
 
+  // rendert eine Aufgabe
   const renderTask = (task, status) => {
     const { assigneeId } = task;
     const color = assigneeColors[assigneeId] || "transparent";
+
+    // Label-Bestimmung
     let label;
     if (status === "done") {
       label = task.availableFrom
@@ -88,20 +92,15 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
       <div
         key={`${task.id}-${status}`}
         className={`task${isDisabled ? " disabled" : ""}`}
-     style={{
-       paddingTop: 8,
-       paddingBottom: 8,
-       border: `2px solid ${color}`,
-       position: "relative",
-       marginBottom: "12px"
-     }}
         style={{
           border: `2px solid ${color}`,
           position: "relative",
-          marginBottom: "12px"
+          marginBottom: "12px",
+          padding: "8px 16px",
+          lineHeight: 1.2
         }}
       >
-        {/* Label unten mittig */}
+        {/* unten mittig */}
         <div
           className="task-label"
           style={{
@@ -112,7 +111,8 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
             fontSize: "0.8rem",
             fontWeight: "bold",
             color: "#555",
-            pointerEvents: "none"
+            pointerEvents: "none",
+            background: "transparent"
           }}
         >
           {label}
@@ -128,7 +128,7 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
           }}
         >
           {renderAssignee(assigneeId)}
-          <div className="task-title">
+          <div className="task-title" style={{ flex: 1 }}>
             {task.name}
           </div>
         </div>
@@ -141,15 +141,15 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
           {status === "available"
             ? `🪙 +${task.points}`
             : status === "done"
-              ? "🔄"
-              : "🔒"}
+            ? "🔄"
+            : "🔒"}
         </button>
       </div>
     );
   };
 
   return (
-    <div className="task-list">
+    <div className="task-list" style={{ flex: 1, overflowY: "auto", padding: "0 16px 20px" }}>
       {available.map(t => renderTask(t, "available"))}
       {locked.map(t => renderTask(t, "locked"))}
       {doneTasks.map(t => renderTask(t, "done"))}
