@@ -825,3 +825,21 @@ header .menu-button {
   object-fit: cover;
   margin-right: 8px;
 }
+/* src/App.css */
+
+.task-label {
+  background: transparent !important;
+}
+/* src/App.css */
+
+/* Verkleinere das Padding der .task-Karten */
+.task {
+  padding-top: 8px;    /* vorher z.B. 16px */
+  padding-bottom: 8px; /* vorher z.B. 16px */
+}
+
+/* Falls du speziell .task-text anpassen möchtest */
+.task .task-text {
+  padding-top: 4px;    /* weniger Raum oberhalb des Titels */
+  padding-bottom: 4px; /* weniger Raum unterhalb des Textes */
+}

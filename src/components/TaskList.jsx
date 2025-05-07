@@ -4,43 +4,41 @@ import { assigneeColors } from "../utils/assigneeColors";
 import useUsers from "../hooks/useUsers";
 
 export default function TaskList({ tasks, onComplete, currentUserId }) {
-  const users     = useUsers();
-  const today     = new Date().toISOString().slice(0, 10);
+  const users = useUsers();
+  const today = new Date().toISOString().slice(0, 10);
   const available = [];
-  const locked    = [];
+  const locked = [];
   const doneTasks = [];
 
-  // Buckets füllen
   tasks.forEach(task => {
-    const assigneeId       = (task.assignedTo || [])[0];
+    const assigneeId = (task.assignedTo || [])[0];
     const isIntervalLocked = task.availableFrom && task.availableFrom > today;
-    const isPersonal       = assigneeId !== "all";
-    const isOwn            = assigneeId === currentUserId;
-    const isLocked         = isIntervalLocked || (isPersonal && !isOwn);
+    const isPersonal = assigneeId !== "all";
+    const isOwn = assigneeId === currentUserId;
+    const isLocked = isIntervalLocked || (isPersonal && !isOwn);
 
     const enriched = { ...task, assigneeId };
-    if (task.doneBy)        doneTasks.push(enriched);
-    else if (isLocked)      locked.push(enriched);
-    else                    available.push(enriched);
+    if (task.doneBy) doneTasks.push(enriched);
+    else if (isLocked) locked.push(enriched);
+    else available.push(enriched);
   });
 
-  const renderAssignee = (assigneeId) => {
+  const renderAssignee = assigneeId => {
     if (assigneeId === "all") {
-      // alle Nutzer leicht überlappend anzeigen
       return (
-        <div style={{ display: "flex", marginRight: 8 }}>
+        <div style={{ display: "flex", marginRight: 12 }}>
           {users.map((u, idx) => (
             <img
               key={u.id}
               src={`/profiles/${u.name.toLowerCase()}.jpg`}
               alt={u.name}
               style={{
-                width: 24,
-                height: 24,
+                width: 45,
+                height: 45,
                 borderRadius: "50%",
                 objectFit: "cover",
                 border: `2px solid ${assigneeColors[u.id] || "transparent"}`,
-                marginLeft: idx === 0 ? 0 : -8,
+                marginLeft: idx === 0 ? 0 : -10,
                 zIndex: users.length - idx
               }}
             />
@@ -48,7 +46,6 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
         </div>
       );
     } else {
-      // Einzelner Nutzer
       const user = users.find(u => u.id === assigneeId);
       const name = user?.name?.toLowerCase() || assigneeId;
       return (
@@ -56,12 +53,12 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
           src={`/profiles/${name}.jpg`}
           alt={user?.name || assigneeId}
           style={{
-            width: 24,
-            height: 24,
+            width: 45,
+            height: 45,
             borderRadius: "50%",
             objectFit: "cover",
             border: `2px solid ${assigneeColors[assigneeId] || "transparent"}`,
-            marginRight: 8
+            marginRight: 12
           }}
         />
       );
@@ -70,7 +67,7 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
 
   const renderTask = (task, status) => {
     const { assigneeId } = task;
-    const color    = assigneeColors[assigneeId] || "transparent";
+    const color = assigneeColors[assigneeId] || "transparent";
     let label;
     if (status === "done") {
       label = task.availableFrom
@@ -79,7 +76,6 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
     } else if (task.availableFrom && task.availableFrom > today) {
       label = `Zu erledigen am ${task.availableFrom}`;
     } else if (assigneeId !== "all" && assigneeId !== currentUserId) {
-      // Nur personalisierte, nicht-eigene Aufgaben
       const user = users.find(u => u.id === assigneeId);
       label = `Zu erledigen von ${user?.name || ""}`;
     } else {
@@ -92,6 +88,13 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
       <div
         key={`${task.id}-${status}`}
         className={`task${isDisabled ? " disabled" : ""}`}
+     style={{
+       paddingTop: 8,
+       paddingBottom: 8,
+       border: `2px solid ${color}`,
+       position: "relative",
+       marginBottom: "12px"
+     }}
         style={{
           border: `2px solid ${color}`,
           position: "relative",
@@ -148,7 +151,7 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
   return (
     <div className="task-list">
       {available.map(t => renderTask(t, "available"))}
-      {locked   .map(t => renderTask(t, "locked"))}
+      {locked.map(t => renderTask(t, "locked"))}
       {doneTasks.map(t => renderTask(t, "done"))}
     </div>
   );
