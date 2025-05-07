@@ -806,4 +806,15 @@ header .menu-button {
   overflow-y: auto;      /* aktiviert vertikales Scrollen */
   padding: 0 16px 20px;  /* optional: Abstand innen */
 }
+/* In App.css oder deiner TaskList-spezifischen CSS-Datei */
 
+.task {
+  /* Ursprünglich z.B. padding: 16px; */
+  padding: 8px 16px;      /* Oben/unten nur noch 8px statt 16px */
+  /* optional: weniger Zeilenhöhe, wenn gewünscht */
+  line-height: 1.2;
+}
+.task.done {
+  padding: 8px 16px;
+  line-height: 1.2;
+}
