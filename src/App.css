@@ -1,8 +1,4 @@
-/* ===============================
-   ✨ Comic-Style Theme
-   =============================== */
-
-   :root {
+:root {
     /* Hauptfarben (knallig & fröhlich) */
     --primary: #FF6F61;         /* Korall-Rot */
     --primary-light: #FFD166;   /* Sonnengelb */
@@ -19,7 +15,8 @@
     /* Allgemeine Werte */
     --radius: 24px;             /* super rund */
     --shadow: 0 8px 20px rgba(0,0,0,0.1);
-    --font: 'Comic Neue', cursive, sans-serif;
+
+    --font: 'Inter', sans-serif;
   }
   
   /* Grund-Layout */
@@ -426,4 +423,9 @@
 
 .admin-close:hover {
   transform: scale(1.2);
+}
+
+body, html {
+  font-family: var(--font);
+  /* … */
 }
