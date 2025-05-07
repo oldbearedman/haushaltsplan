@@ -1,0 +1,70 @@
+/* src/components/RewardsList.css */
+
+.rewards-list {
+  padding: 0 16px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.rewards-header {
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 16px 0;
+  color: var(--text);
+}
+
+.reward-card {
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reward-card.disabled {
+  opacity: 0.5;
+}
+
+.reward-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.reward-name {
+  font-weight: 600;
+  font-size: 1rem;
+  flex: 1;
+}
+
+.redeem-button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 1rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.redeem-button:disabled {
+  background: #ccc;
+  cursor: default;
+}
+
+.redeem-cost {
+  margin-right: 6px;
+}
+
+.redeem-icon {
+  font-size: 1.2rem;
+}

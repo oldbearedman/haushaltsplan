@@ -1,46 +1,29 @@
 // src/components/RewardsList.jsx
 import React from "react";
+import "./RewardsList.css";
 
 export default function RewardsList({ rewards, points, onRedeem }) {
-  if (rewards.length === 0) {
-    return (
-      <div style={{ textAlign: "center", marginTop: "40px" }}>
-        <p>Keine Prämien verfügbar.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="task-list">
+    <div className="rewards-list">
+      <h2 className="rewards-header">Punkte einlösen</h2>
       {rewards.map(r => {
         const canRedeem = points >= r.cost;
         return (
           <div
             key={r.id}
-            className="task reward"
-            style={{
-              border: `2px solid gold`,
-              marginBottom: "12px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center"
-            }}
+            className={`reward-card${canRedeem ? "" : " disabled"}`}
           >
-            <div className="task-text">
-              <div
-                className="task-title"
-                style={{ fontWeight: "600", fontSize: "1rem" }}
+            <div className="reward-content">
+              <div className="reward-name">{r.name}</div>
+              <button
+                className="redeem-button"
+                disabled={!canRedeem}
+                onClick={() => canRedeem && onRedeem(r)}
               >
-                {r.name} (–{r.cost})
-              </div>
+                <span className="redeem-cost">{r.cost}</span>
+                <span className="redeem-icon">🪙</span>
+              </button>
             </div>
-            <button
-              className={`done-button ${canRedeem ? "" : "grey"}`}
-              onClick={() => onRedeem(r)}
-              disabled={!canRedeem}
-            >
-              {canRedeem ? "Einlösen" : "Zu wenig Punkte"}
-            </button>
           </div>
         );
       })}
