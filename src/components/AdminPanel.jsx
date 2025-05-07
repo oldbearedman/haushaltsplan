@@ -1,9 +1,16 @@
 // src/components/AdminPanel.jsx
 import React, { useState } from 'react';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 
-export default function AdminPanel({ users, onReset, onCloseAdmin, isRewardsMode, setRewardsMode }) {
+export default function AdminPanel({
+  users,
+  onReset,           // App zurücksetzen
+  onResetPrizes,     // eingelöste Prämien zurücksetzen
+  onCloseAdmin,
+  isRewardsMode,
+  setRewardsMode
+}) {
   // State für Task-Form
   const [taskName, setTaskName] = useState('');
   const [taskPoints, setTaskPoints] = useState(1);
@@ -26,6 +33,7 @@ export default function AdminPanel({ users, onReset, onCloseAdmin, isRewardsMode
       doneBy: '',
       lastDoneAt: '',
       availableFrom: '',
+      completions: []
     });
     setTaskName('');
   };
@@ -34,7 +42,7 @@ export default function AdminPanel({ users, onReset, onCloseAdmin, isRewardsMode
     e.preventDefault();
     await addDoc(collection(db, 'rewards'), {
       name: rewardName,
-      cost: rewardCost,
+      cost: rewardCost
     });
     setRewardName('');
   };
@@ -60,6 +68,9 @@ export default function AdminPanel({ users, onReset, onCloseAdmin, isRewardsMode
         <button className="admin-btn reset" onClick={onReset}>
           🔄 App zurücksetzen
         </button>
+        <button className="admin-btn reset" onClick={onResetPrizes}>
+          ♻️ Prämien zurücksetzen
+        </button>
         <button
           className="admin-btn delete"
           onClick={isRewardsMode ? clearAllRewards : clearAllTasks}
@@ -72,7 +83,9 @@ export default function AdminPanel({ users, onReset, onCloseAdmin, isRewardsMode
         >
           {isRewardsMode ? '📝 Aufgaben bearbeiten' : '🏆 Prämien bearbeiten'}
         </button>
-        <button className="admin-close" onClick={onCloseAdmin}>✕</button>
+        <button className="admin-close" onClick={onCloseAdmin}>
+          ✕
+        </button>
       </div>
 
       {isRewardsMode ? (
@@ -149,7 +162,9 @@ export default function AdminPanel({ users, onReset, onCloseAdmin, isRewardsMode
             >
               <option value="all">Alle Nutzer</option>
               {users.map(u => (
-                <option key={u.id} value={u.id}>{u.name}</option>
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
               ))}
             </select>
           </label>

@@ -22,27 +22,28 @@ import AdminPanel   from "./components/AdminPanel";
 import TaskForm     from "./components/TaskForm";
 
 export default function App() {
-  const [selectedUser, setSelectedUser]           = useState(null);
-  const [showLevelUp,  setShowLevelUp]            = useState(false);
+  const [selectedUser, setSelectedUser]         = useState(null);
+  const [showLevelUp, setShowLevelUp]           = useState(false);
   const [showRedeemSuccess, setShowRedeemSuccess] = useState(false);
-  const [redeemedPrizes,   setRedeemedPrizes]     = useState([]);
-  const [adminMode,    setAdminMode]              = useState(false);
-  const [view,         setView]                   = useState("tasks");
-  const [pinOpen,      setPinOpen]                = useState(false);
-  const [pinInput,     setPinInput]               = useState("");
-  const [points,       setPoints]                 = useState(0);
+  const [redeemedPrizes, setRedeemedPrizes]     = useState([]);
+  const [adminMode, setAdminMode]               = useState(false);
+  const [isRewardsMode, setRewardsMode]         = useState(false);
+  const [view, setView]                         = useState("tasks");
+  const [pinOpen, setPinOpen]                   = useState(false);
+  const [pinInput, setPinInput]                 = useState("");
+  const [points, setPoints]                     = useState(0);
 
-  const users                         = useUsers();
-  const { tasks, loading, error }     = useTasks(selectedUser?.id);
-  const { rewards }                   = useRewards();
+  const users                                  = useUsers();
+  const { tasks, loading, error }              = useTasks();
+  const { rewards }                            = useRewards();
   const { level, levelName, xpProgress, xpToNext, addXp, setXp } = useLevel(0);
 
-  // Ref to store previous level for confetti
   const prevLevelRef = useRef(level);
 
-  // Load user’s XP/points on selection
+  // Lade Punkte/XP beim User-Wechsel
   useEffect(() => {
     setAdminMode(false);
+    setRewardsMode(false);
     if (!selectedUser) return;
     (async () => {
       const snap  = await getDocs(collection(db, "users"));
@@ -54,7 +55,7 @@ export default function App() {
     })();
   }, [selectedUser, setXp]);
 
-  // Fire confetti once per level up
+  // Confetti bei Level-Up
   useEffect(() => {
     const prev = prevLevelRef.current;
     if (level > prev) {
@@ -65,74 +66,102 @@ export default function App() {
     prevLevelRef.current = level;
   }, [level]);
 
-  // Admin: reset all tasks and users
+  // Admin: Tasks & Users zurücksetzen
   const handleResetAll = async () => {
     if (!window.confirm("Alles zurücksetzen?")) return;
     const [tSnap, uSnap] = await Promise.all([
       getDocs(collection(db, "tasks")),
       getDocs(collection(db, "users"))
     ]);
-    await Promise.all(tSnap.docs.map(d =>
-      updateDoc(doc(db, "tasks", d.id), {
-        doneBy: "", count: 0,
-        availableFrom: "", lastResetDate: ""
-      })
-    ));
-    await Promise.all(uSnap.docs.map(d =>
-      updateDoc(doc(db, "users", d.id), { points: 0, xp: 0 })
-    ));
+    await Promise.all(
+      tSnap.docs.map(d =>
+        updateDoc(doc(db, "tasks", d.id), {
+          doneBy: "",
+          count: 0,
+          availableFrom: "",
+          lastResetDate: "",
+          userProgress: {},
+          completions: []
+        })
+      )
+    );
+    await Promise.all(
+      uSnap.docs.map(d =>
+        updateDoc(doc(db, "users", d.id), { points: 0, xp: 0 })
+      )
+    );
     window.location.reload();
   };
 
-  // Complete or undo a task
-  const handleComplete = async (task, mode = "toggle") => {
+  // Admin: eingelöste Prämien zurücksetzen
+  const handleResetPrizes = () => {
+    if (!window.confirm("Alle eingelösten Prämien wirklich zurücksetzen?")) return;
+    setRedeemedPrizes([]);
+  };
+
+  // Aufgabe abschließen / rückgängig
+  const handleComplete = async (task, mode = "toggle", targetCompletion = null) => {
     if (!selectedUser) return;
+
     const tRef = doc(db, "tasks", task.id);
     const uRef = doc(db, "users", selectedUser.id);
-    let delta = 0;
-    const multi = typeof task.repeatInterval === "number";
+    const pts  = task.points || 0;
+    let delta  = 0;
 
-    if (mode === "remove") {
-      await updateDoc(tRef, {
-        doneBy: "", lastDoneAt: "",
-        count: multi ? 0 : undefined,
-        availableFrom: ""
+    const completions = Array.isArray(task.completions) ? task.completions : [];
+    const isMulti     = !!task.targetCount;
+
+    if (mode === "remove" && isMulti) {
+      // einzelnen Schritt entfernen
+      const updated = completions.filter(c => {
+        if (!targetCompletion) return c.userId !== selectedUser.id;
+        return !(c.userId === selectedUser.id && c.timestamp === targetCompletion.timestamp);
       });
-      delta = -task.points * (multi ? (task.targetCount || 1) : 1);
-    } else if (multi) {
-      const newCount = (task.count || 0) + 1;
-      const done     = newCount >= task.targetCount;
-      if (done) delta = task.points;
-      const nextAvailable = done
-        ? new Date(Date.now() + task.repeatInterval * 86400000)
-            .toISOString().slice(0,10)
-        : "";
-      await updateDoc(tRef, {
-        count: newCount,
-        doneBy: done ? selectedUser.name : "",
-        doneById: done ? selectedUser.id : "",
-        lastDoneAt: done ? new Date().toISOString().slice(0,10) : "",
-        availableFrom: nextAvailable
-      });
+      await updateDoc(tRef, { completions: updated });
+      delta = -pts;
+
+    } else if (isMulti) {
+      // neuen Schritt hinzufügen
+      const today = new Date().toISOString().slice(0, 10);
+      const todayAll = completions.filter(c => c.date === today);
+      if (todayAll.length >= task.targetCount) return;
+
+      const newC = {
+        userId: selectedUser.id,
+        userName: selectedUser.name,
+        timestamp: new Date().toISOString(),
+        date: today,
+        taskId: task.id
+      };
+      await updateDoc(tRef, { completions: [...completions, newC] });
+      delta = pts;
+
     } else {
-      if (!task.doneBy) {
-        delta = task.points;
+      // Single-Task
+      if (mode === "remove") {
+        await updateDoc(tRef, { doneBy: "", doneById: "", lastDoneAt: "" });
+        delta = -pts;
+      } else if (!task.doneBy) {
         await updateDoc(tRef, {
           doneBy: selectedUser.name,
           doneById: selectedUser.id,
-          lastDoneAt: new Date().toISOString().slice(0,10)
+          lastDoneAt: new Date().toISOString().slice(0, 10)
         });
+        delta = pts;
       }
     }
 
-    if (delta) {
-      await updateDoc(uRef, { points: increment(delta), xp: increment(delta) });
+    if (delta !== 0) {
+      await updateDoc(uRef, {
+        points: increment(delta),
+        xp: increment(delta)
+      });
       setPoints(p => p + delta);
       addXp(delta);
     }
   };
 
-  // Redeem a prize
+  // Prämie einlösen
   const handleRedeem = async prize => {
     if (!selectedUser || points < prize.cost) return;
     const uRef = doc(db, "users", selectedUser.id);
@@ -142,21 +171,19 @@ export default function App() {
     confetti({ particleCount: 100, spread: 50, origin: { y: 0.3 } });
     setTimeout(() => setShowRedeemSuccess(false), 3000);
     setView("done");
-         // neuen Eintrag in redeemedPrizes anlegen
-     setRedeemedPrizes(ps => [
-       ...ps,
-       {
-         id: prize.id,
-         name: prize.name,
-         redeemedBy: selectedUser.name,
-         redeemedById: selectedUser.id,
-         redeemedAt: new Date().toISOString().slice(0, 10)
-       }
-     ]);
-    // Optionally: add to a redeemedPrizes state to render under DoneList
+    setRedeemedPrizes(ps => [
+      ...ps,
+      {
+        id: prize.id,
+        name: prize.name,
+        redeemedBy: selectedUser.name,
+        redeemedById: selectedUser.id,
+        redeemedAt: new Date().toISOString().slice(0, 10)
+      }
+    ]);
   };
 
-  // Handle PIN input
+  // PIN-Eingabe
   const handlePinInput = digit => {
     const next = pinInput + digit;
     setPinInput(next);
@@ -168,7 +195,7 @@ export default function App() {
     }
   };
 
-  // Header back button
+  // Zurück-Button
   const handleBack = () => {
     if (view === "rewards") setView("tasks");
     else setSelectedUser(null);
@@ -176,28 +203,24 @@ export default function App() {
 
   return (
     <div className="app-wrapper">
-      {/* Level-Up Popup */}
       {showLevelUp && (
         <div className="level-up-popup">
           <div>🎉 Level {level} erreicht! 🎉</div>
           <div>🎉 {levelName} 🎉</div>
         </div>
       )}
-      {/* Redeem Success Popup */}
       {showRedeemSuccess && (
         <div className="level-up-popup" style={{ background: "#FFD700" }}>
           <div>🎉 Prämie eingelöst! 🎉</div>
         </div>
       )}
 
-      {/* Header */}
       <Header
         selectedUser={selectedUser}
         onBack={handleBack}
         onOpenAdmin={() => { setPinOpen(true); setPinInput(""); }}
       />
 
-      {/* Stats */}
       {selectedUser && (
         <Stats
           level={level}
@@ -209,52 +232,46 @@ export default function App() {
         />
       )}
 
-      {/* TabBar */}
       {selectedUser && !adminMode && (
         <TabBar view={view} setView={setView} />
       )}
 
-      {/* Main Content */}
       <main className="content">
-        {!selectedUser ? (
-          <UserList onUserSelect={setSelectedUser} />
-        ) : loading ? (
-          <div>Lade Aufgaben…</div>
-        ) : error ? (
-          <div>Fehler: {error.message}</div>
-        ) : adminMode ? (
-          <>
-            <AdminPanel
-              users={users}
-              onReset={handleResetAll}
-              onCloseAdmin={() => setAdminMode(false)}
-            />
-            <TaskForm users={users} />
-          </>
-        ) : view === "tasks" ? (
-          <TaskList
-            tasks={tasks}
-            currentUserId={selectedUser.id}
-            users={users}
-            onComplete={handleComplete}
-          />
-        ) : view === "done" ? (
-                   <DoneList
-                     tasks={tasks}
-                     redeemedPrizes={redeemedPrizes}
-                     currentUserId={selectedUser.id}
-                     onUndo={t => handleComplete(t, "remove")}
-                   />
-        ) : view === "rewards" ? (
-          <RewardsList
-            rewards={rewards}
-            points={points}
-            onRedeem={handleRedeem}
-          />
-        ) : null}
+        {!selectedUser
+          ? <UserList onUserSelect={setSelectedUser} />
+          : loading
+            ? <div>Lade Aufgaben…</div>
+            : error
+              ? <div>Fehler: {error.message}</div>
+              : adminMode
+                ? (
+                  <>
+                    <AdminPanel
+                      users={users}
+                      onReset={handleResetAll}
+                      onResetPrizes={handleResetPrizes}
+                      onCloseAdmin={() => setAdminMode(false)}
+                      isRewardsMode={isRewardsMode}
+                      setRewardsMode={setRewardsMode}
+                    />
+                    <TaskForm users={users} />
+                  </>
+                )
+                : view === "tasks"
+                  ? <TaskList tasks={tasks} currentUserId={selectedUser.id} onComplete={handleComplete} />
+                  : view === "done"
+                    ? <DoneList
+                        tasks={tasks}
+                        redeemedPrizes={redeemedPrizes}
+                        currentUserId={selectedUser.id}
+                        onUndo={(task, _, c) => handleComplete(task, "remove", c)}
+                      />
+                    : view === "rewards"
+                      ? <RewardsList rewards={rewards} points={points} onRedeem={handleRedeem} />
+                      : null
+        }
       </main>
 
-      {/* PIN-Modal */}
       {pinOpen && (
         <PinModal
           currentPinLength={pinInput.length}

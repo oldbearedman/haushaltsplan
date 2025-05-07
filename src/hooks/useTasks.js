@@ -22,6 +22,7 @@ export default function useTasks() {
         setLoading(false);
       }
     );
+
     return () => unsubscribe();
   }, []);
 

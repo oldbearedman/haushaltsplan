@@ -31,43 +31,58 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
               src={`/profiles/${u.name.toLowerCase()}.jpg`}
               alt={u.name}
               className="assignee-avatar small"
-              style={{ borderColor: assigneeColors[u.id] || "transparent", zIndex: users.length - idx }}
+              style={{
+                borderColor: assigneeColors[u.id] || "transparent",
+                zIndex: users.length - idx
+              }}
             />
           ))}
         </div>
       );
-    } else {
-      const user = users.find(u => u.id === assigneeId);
-      const name = user?.name?.toLowerCase() || assigneeId;
-      return (
-        <img
-          src={`/profiles/${name}.jpg`}
-          alt={user?.name || assigneeId}
-          className="assignee-avatar small"
-          style={{ borderColor: assigneeColors[assigneeId] || "transparent" }}
-        />
-      );
     }
+    const user = users.find(u => u.id === assigneeId);
+    const name = user?.name?.toLowerCase() || assigneeId;
+    return (
+      <img
+        src={`/profiles/${name}.jpg`}
+        alt={user?.name || assigneeId}
+        className="assignee-avatar small"
+        style={{ borderColor: assigneeColors[assigneeId] || "transparent" }}
+      />
+    );
   };
 
   const renderTask = (task, status) => {
     const { assigneeId } = task;
     const color = assigneeColors[assigneeId] || "transparent";
 
+    // Label-Logik bleibt unverändert
     let label;
-    if (status === "done") label = task.availableFrom ? `Zu erledigen am ${task.availableFrom}` : "Heute erledigt";
-    else if (task.availableFrom && task.availableFrom > today) label = `Zu erledigen am ${task.availableFrom}`;
-    else if (assigneeId !== "all" && assigneeId !== currentUserId)
-      label = `Zu erledigen von ${users.find(u => u.id === assigneeId)?.name || ""}`;
-    else label = "Heute zu erledigen";
+    if (status === "done") {
+      label = task.availableFrom
+        ? `Zu erledigen am ${task.availableFrom}`
+        : "Heute erledigt";
+    } else if (task.availableFrom && task.availableFrom > today) {
+      label = `Zu erledigen am ${task.availableFrom}`;
+    } else if (assigneeId !== "all" && assigneeId !== currentUserId) {
+      label = `Zu erledigen von ${
+        users.find(u => u.id === assigneeId)?.name || ""
+      }`;
+    } else {
+      label = "Heute zu erledigen";
+    }
 
     const isDisabled = status !== "available";
+    const icon =
+      status === "available"
+        ? `🪙 +${task.points}`
+        : status === "done"
+        ? "🔄"
+        : <span style={{ color: "#222" }}>🔒</span>;
 
-    const icon = status === "available"
-      ? `🪙 +${task.points}`
-      : status === "done"
-      ? "🔄"
-      : <span style={{ color: "#222" }}>🔒</span>;
+    // Hier zählen wir **alle** Completions heute:
+    const completions = Array.isArray(task.completions) ? task.completions : [];
+    const doneToday = completions.filter(c => c.date === today).length;
 
     return (
       <div
@@ -75,7 +90,22 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
         className={`task-card${isDisabled ? " disabled" : ""}`}
         style={{ borderColor: color }}
       >
-        <div className="task-assignee-top">{renderAssignee(assigneeId)}</div>
+        <div className="task-assignee-top">
+          {renderAssignee(assigneeId)}
+        </div>
+
+        {/* Dot-Progress basierend auf allen Completions */}
+        {task.targetCount > 1 && (
+          <div className="dot-progress">
+            {Array.from({ length: task.targetCount }).map((_, i) => (
+              <span
+                key={i}
+                className={i < doneToday ? "dot done" : "dot"}
+              />
+            ))}
+          </div>
+        )}
+
         <div className="task-content">
           <div className="task-title">{task.name}</div>
           <button

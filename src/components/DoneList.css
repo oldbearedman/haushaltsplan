@@ -1,0 +1,7 @@
+/* src/components/DoneList.css */
+
+/* Kleinere Schrift & keine Zeilenumbrüche bei der Timestamp-Zeile */
+.done-by {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}

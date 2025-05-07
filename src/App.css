@@ -123,7 +123,9 @@ header h1 {
 
 .tab-bar {
   display: flex;
-  justify-content: space-around;
+  /* von space-around auf center, und Lücke per gap */
+  justify-content: center;
+  gap: 8px;            /* <— Abstand zwischen den Buttons */
   background: var(--card-bg);
   box-shadow: var(--shadow);
   padding: 10px 0;
@@ -133,6 +135,7 @@ header h1 {
 }
 .tab-button {
   flex: 1;
+  margin: 0;           /* kein zusätzlicher Außenabstand nötig, dank gap */
   text-align: center;
   padding: 10px 0;
   background: none;
@@ -377,4 +380,8 @@ button:hover {
 }
 .admin-close:hover {
   transform: scale(1.2);
+}
+.done-by {
+  font-size: 0.75rem;
+  white-space: nowrap;
 }

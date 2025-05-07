@@ -129,3 +129,24 @@
   max-width: 50%;
   text-align: right;
 }
+.dot-progress {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #444;
+  transition: background 0.3s ease;
+}
+
+.dot.done {
+  background: #00ffcc;
+  box-shadow: 0 0 6px #00ffcc;
+}
