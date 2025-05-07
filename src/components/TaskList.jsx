@@ -30,7 +30,7 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
               key={u.id}
               src={`/profiles/${u.name.toLowerCase()}.jpg`}
               alt={u.name}
-              className="assignee-avatar"
+              className="assignee-avatar small"
               style={{ borderColor: assigneeColors[u.id] || "transparent", zIndex: users.length - idx }}
             />
           ))}
@@ -43,7 +43,7 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
         <img
           src={`/profiles/${name}.jpg`}
           alt={user?.name || assigneeId}
-          className="assignee-avatar"
+          className="assignee-avatar small"
           style={{ borderColor: assigneeColors[assigneeId] || "transparent" }}
         />
       );
@@ -54,7 +54,6 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
     const { assigneeId } = task;
     const color = assigneeColors[assigneeId] || "transparent";
 
-    // Label-Text bestimmen
     let label;
     if (status === "done") label = task.availableFrom ? `Zu erledigen am ${task.availableFrom}` : "Heute erledigt";
     else if (task.availableFrom && task.availableFrom > today) label = `Zu erledigen am ${task.availableFrom}`;
@@ -64,7 +63,6 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
 
     const isDisabled = status !== "available";
 
-    // Hier rendern wir das Icon mit dunklerer Farbe nur für den Lock-Zustand
     const icon = status === "available"
       ? `🪙 +${task.points}`
       : status === "done"
@@ -77,11 +75,9 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
         className={`task-card${isDisabled ? " disabled" : ""}`}
         style={{ borderColor: color }}
       >
+        <div className="task-assignee-top">{renderAssignee(assigneeId)}</div>
         <div className="task-content">
-          {renderAssignee(assigneeId)}
-          <div className="task-info">
-            <div className="task-title">{task.name}</div>
-          </div>
+          <div className="task-title">{task.name}</div>
           <button
             className={`done-button${isDisabled ? " grey" : ""}`}
             onClick={() => onComplete(task)}
@@ -90,7 +86,7 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
             {icon}
           </button>
         </div>
-        <div className="task-label">{label}</div>
+        <div className="task-label-top">{label}</div>
       </div>
     );
   };

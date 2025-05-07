@@ -23,22 +23,23 @@
 
 .task-content {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
 }
 
 .assignees-stack {
   display: flex;
-  margin-right: 8px;
+  flex-shrink: 0;
+  align-items: center;
 }
 
 .assignee-avatar {
-  width: 45px;
-  height: 45px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid transparent;
-  margin-left: -10px;
+  margin-left: -8px;
 }
 
 .assignee-avatar:first-child {
@@ -52,6 +53,9 @@
 .task-title {
   font-weight: 600;
   font-size: 1rem;
+  white-space: normal;
+  word-break: break-word;
+  flex: 1;
 }
 
 .done-button {
@@ -97,4 +101,27 @@
 .task-card.disabled {
   opacity: 0.5;
   pointer-events: none;
+}
+
+.task-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.task-label-top {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(2px);
+  padding: 2px 6px;
+  border-radius: 6px;
+  pointer-events: none;
+  max-width: 50%;
+  text-align: right;
 }
