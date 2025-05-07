@@ -104,6 +104,7 @@ export default function App() {
       await updateDoc(tRef, {
         count: newCount,
         doneBy: done ? selectedUser.name : "",
+        doneById: done ? selectedUser.id : "",
         lastDoneAt: done ? new Date().toISOString().slice(0,10) : "",
         availableFrom: nextAvailable
       });
@@ -113,6 +114,7 @@ export default function App() {
         delta = task.points;
         await updateDoc(tRef, {
           doneBy: selectedUser.name,
+          doneById: selectedUser.id,
           lastDoneAt: new Date().toISOString().slice(0,10)
         });
       }
@@ -204,7 +206,7 @@ export default function App() {
                   ) : view==="done" ? (
                       <DoneList
                         tasks={tasks}
-                        currentUserName={selectedUser.name}     // neu
+                        currentUserId={selectedUser.id}
                         onUndo={t => handleComplete(t, "remove")}
                       />
         ) : null}

@@ -3,14 +3,11 @@ import React from "react";
 import getIcon from "../utils/getIcon";
 import { assigneeColors } from "../utils/assigneeColors";
 
-export default function DoneList({ tasks, onUndo, currentUserId, currentUserName }) {
+export default function DoneList({ tasks, onUndo, currentUserId }) {
   const today = new Date().toISOString().slice(0, 10);
   const todayTasks = tasks.filter(t => t.lastDoneAt === today);
-  const olderTasks = tasks.filter(
-    t => t.lastDoneAt && t.lastDoneAt < today
-  );
+  const olderTasks = tasks.filter(t => t.lastDoneAt && t.lastDoneAt < today);
 
-  // Wenn überhaupt keine erledigten Tasks
   const hasAny = todayTasks.length > 0 || olderTasks.length > 0;
   if (!hasAny) {
     return (
@@ -20,22 +17,18 @@ export default function DoneList({ tasks, onUndo, currentUserId, currentUserName
     );
   }
 
-  const renderTask = t => {
-    const assignee    = (t.assignedTo || [])[0];
-    const color       = assigneeColors[assignee] || "transparent";
-    const isOwnAssgn  = assignee === currentUserId;
-    const isAllAssgn  = (t.assignedTo || []).includes("all");
-    const didIt       = t.doneBy === currentUserName;
-    // Erlaubt undo, wenn:
-    // • persönliche Aufgabe UND eigener Account
-    // • ODER „für alle“ UND man selbst war, der sie erledigt hat
-    const canUndo     = (isOwnAssgn) || (isAllAssgn && didIt);
+  const renderDone = list => list.map(t => {
+    const assigneeId = (t.assignedTo || [])[0];
+    const color      = assigneeColors[assigneeId] || "transparent";
+
+    // jetzt sauber über doneById prüfen
+    const isOwnDone = t.doneById === currentUserId;
 
     return (
       <div
         key={t.id}
         className="task done"
-        style={{ border: `2px solid ${color}` }}
+        style={{ border: `2px solid ${color}`, marginBottom: "12px" }}
       >
         <div className="task-text">
           <div className="task-title">
@@ -45,7 +38,7 @@ export default function DoneList({ tasks, onUndo, currentUserId, currentUserName
             Erledigt von {t.doneBy} am {t.lastDoneAt}
           </div>
         </div>
-        {canUndo ? (
+        {isOwnDone ? (
           <button
             className="done-button red"
             onClick={() => onUndo(t)}
@@ -59,21 +52,20 @@ export default function DoneList({ tasks, onUndo, currentUserId, currentUserName
         )}
       </div>
     );
-  };
+  });
 
   return (
     <>
       {todayTasks.length > 0 && (
         <>
           <div className="section-title">Heute erledigt</div>
-          {todayTasks.map(renderTask)}
+          {renderDone(todayTasks)}
         </>
       )}
-
       {olderTasks.length > 0 && (
         <>
           <div className="section-title">Früher erledigt</div>
-          {olderTasks.map(renderTask)}
+          {renderDone(olderTasks)}
         </>
       )}
     </>
