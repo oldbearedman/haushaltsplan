@@ -4,15 +4,14 @@ import getIcon from "../utils/getIcon";
 import { assigneeColors } from "../utils/assigneeColors";
 
 export default function DoneList({ tasks, onUndo }) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toISOString().slice(0, 10);
   const todayTasks = tasks.filter(t => t.lastDoneAt === today);
   const olderTasks = tasks.filter(
     t => t.lastDoneAt && t.lastDoneAt < today
   );
 
-  // Wenn überhaupt keine erledigten Tasks
-  const hasAny = todayTasks.length > 0 || olderTasks.length > 0;
-  if (!hasAny) {
+  // Keine erledigten Aufgaben?
+  if (todayTasks.length === 0 && olderTasks.length === 0) {
     return (
       <div style={{ textAlign: "center", marginTop: "40px" }}>
         <p>Keine erledigten Aufgaben.</p>

@@ -1,27 +1,17 @@
 // src/hooks/useTasks.js
 import { useState, useEffect } from "react";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 
-export default function useTasks(userId) {
-  const [tasks, setTasks] = useState([]);
+export default function useTasks() {
+  const [tasks,   setTasks]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error,   setError]   = useState(null);
 
   useEffect(() => {
-    if (!userId) {
-      setTasks([]);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
-    const q = query(
-      collection(db, "tasks"),
-      where("assignedTo", "array-contains-any", [userId, "all"])
-    );
     const unsubscribe = onSnapshot(
-      q,
+      collection(db, "tasks"),
       snapshot => {
         setTasks(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
         setLoading(false);
@@ -32,9 +22,8 @@ export default function useTasks(userId) {
         setLoading(false);
       }
     );
-
     return () => unsubscribe();
-  }, [userId]);
+  }, []);
 
   return { tasks, loading, error };
 }

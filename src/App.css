@@ -716,3 +716,17 @@ header .menu-button {
   color: #666;
   margin-top: 6px;
 }
+.level-up-popup {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 123, 255, 0.9);
+  color: white;
+  text-align: center;
+  padding: 16px 24px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,123,255,0.6);
+  font-size: 0.9rem;
+  z-index: 1000;
+}

@@ -3,7 +3,7 @@ import React from "react";
 import getIcon from "../utils/getIcon";
 import { assigneeColors } from "../utils/assigneeColors";
 
-export default function TaskList({ tasks, onComplete }) {
+export default function TaskList({ tasks, onComplete, currentUserId }) {
   if (tasks.length === 0) {
     return (
       <div style={{ textAlign: "center", marginTop: "40px" }}>
@@ -22,7 +22,13 @@ export default function TaskList({ tasks, onComplete }) {
         .map(task => {
           const assignee = (task.assignedTo || [])[0];
           const color    = assigneeColors[assignee] || "transparent";
-          const isLocked = task.availableFrom && task.availableFrom > today;
+
+          // gesperrt, wenn nicht dir zugewiesen
+          const notYours = assignee !== currentUserId && assignee !== "all";
+          // oder wenn noch nicht verfügbar
+          const lockedByDate = task.availableFrom && task.availableFrom > today;
+
+          const isLocked = notYours || lockedByDate;
 
           return (
             <div
@@ -34,9 +40,14 @@ export default function TaskList({ tasks, onComplete }) {
                 <div className="task-title">
                   {getIcon(task.name)} {task.name}
                 </div>
-                {isLocked && (
+                {lockedByDate && (
                   <div className="task-locked">
                     Verfügbar ab {task.availableFrom}
+                  </div>
+                )}
+                {notYours && (
+                  <div className="task-locked">
+                    Zugewiesen an andere
                   </div>
                 )}
               </div>
