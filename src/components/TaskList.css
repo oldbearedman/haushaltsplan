@@ -65,9 +65,13 @@
   font-size: 0.85rem;
   font-weight: bold;
   cursor: pointer;
-  background: var(--primary);
+  background: var(--accent); /* Türkisgrün statt Rot */
   color: white;
   transition: background 0.2s;
+}
+
+.done-button:hover {
+  background: #05c59a;
 }
 
 .done-button.grey {

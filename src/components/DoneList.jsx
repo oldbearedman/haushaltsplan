@@ -5,7 +5,7 @@ import useUsers from "../hooks/useUsers";
 
 export default function DoneList({
   tasks = [],
-  redeemedPrizes = [],       // Liste der eingelösten Prämien
+  redeemedPrizes = [],
   onUndo,
   currentUserId
 }) {
@@ -16,8 +16,11 @@ export default function DoneList({
   const todayTasks = tasks.filter(t => t.lastDoneAt === today);
   const olderTasks = tasks.filter(t => t.lastDoneAt && t.lastDoneAt < today);
 
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  const recentPrizes = redeemedPrizes.filter(p => new Date(p.redeemedAt) >= threeDaysAgo);
+
   const hasAnyTasks = todayTasks.length > 0 || olderTasks.length > 0;
-  const hasAnyPrizes = redeemedPrizes.length > 0;
+  const hasAnyPrizes = recentPrizes.length > 0;
 
   if (!hasAnyTasks && !hasAnyPrizes) {
     return (
@@ -27,7 +30,6 @@ export default function DoneList({
     );
   }
 
-  // Avatar-Renderer
   const renderAvatar = userId => {
     const user = users.find(u => u.id === userId);
     const color = assigneeColors[userId] || "transparent";
@@ -48,7 +50,6 @@ export default function DoneList({
     );
   };
 
-  // Karten für erledigte Tasks
   const renderDoneTask = list =>
     list.map(t => {
       const color     = assigneeColors[t.doneById] || "transparent";
@@ -60,7 +61,7 @@ export default function DoneList({
           className="task done"
           style={{
             border: `2px solid ${color}`,
-            marginBottom: "12px",
+            margin: "0 14px 12px",
             display: "flex",
             alignItems: "center",
             padding: "8px"
@@ -86,10 +87,9 @@ export default function DoneList({
       );
     });
 
-  // Karten für eingelöste Prämien
   const renderPrizes = list =>
     list.map(p => {
-      const color   = "#DAA520"; // gold
+      const color   = "#DAA520";
       const isOwn   = p.redeemedById === currentUserId;
       return (
         <div
@@ -98,7 +98,7 @@ export default function DoneList({
           style={{
             border: `3px solid ${color}`,
             boxShadow: "0 0 10px rgba(218,165,32,0.7)",
-            marginBottom: "12px",
+            margin: "0 14px 12px",
             display: "flex",
             alignItems: "center",
             padding: "8px",
@@ -112,7 +112,6 @@ export default function DoneList({
               Eingelöst von {p.redeemedBy} am {p.redeemedAt}
             </div>
           </div>
-          {/* drei Sterne */}
           <div style={{ fontSize: "1.2rem", marginRight: 8 }}>⭐️⭐️⭐️</div>
           {isOwn && (
             <button className="done-button grey" disabled>
@@ -125,22 +124,24 @@ export default function DoneList({
 
   return (
     <>
+      {hasAnyPrizes && (
+        <>
+          <div className="section-title">Kürzlich eingelöste Prämien</div>
+          {renderPrizes(recentPrizes)}
+        </>
+      )}
+
       {todayTasks.length > 0 && (
         <>
           <div className="section-title">Heute erledigt</div>
           {renderDoneTask(todayTasks)}
         </>
       )}
+
       {olderTasks.length > 0 && (
         <>
           <div className="section-title">Früher erledigt</div>
           {renderDoneTask(olderTasks)}
-        </>
-      )}
-      {hasAnyPrizes && (
-        <>
-          <div className="section-title">Eingelöste Prämien</div>
-          {renderPrizes(redeemedPrizes)}
         </>
       )}
     </>
