@@ -1,135 +1,163 @@
 // src/components/AdminPanel.jsx
-import React, { useState } from "react";
-import "./AdminPanel.css";
-import {
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  doc,
-  updateDoc
-} from "firebase/firestore";
-import { db } from "../firebase";
+import React, { useState } from 'react';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
-export default function AdminPanel({ users, onReset, onCloseAdmin }) {
-  const [name, setName] = useState("");
-  const [perDay, setPerDay] = useState(1);
-  const [intervalDays, setIntervalDays] = useState(1);
-  const [points, setPoints] = useState(1);
-  const [assignee, setAssignee] = useState("all");
-  const [successMsg, setSuccessMsg] = useState("");
+export default function AdminPanel({ users, onReset, onCloseAdmin, isRewardsMode, setRewardsMode }) {
+  // State für Task-Form
+  const [taskName, setTaskName] = useState('');
+  const [taskPoints, setTaskPoints] = useState(1);
+  const [taskPerDay, setTaskPerDay] = useState(1);
+  const [taskInterval, setTaskInterval] = useState(1);
+  const [taskAssignee, setTaskAssignee] = useState('all');
 
-  const submit = async e => {
+  // State für Reward-Form
+  const [rewardName, setRewardName] = useState('');
+  const [rewardCost, setRewardCost] = useState(1);
+
+  const addTask = async e => {
     e.preventDefault();
-    if (!name.trim()) return;
-    const assignedTo = assignee === "all" ? ["all"] : [assignee];
-    await addDoc(collection(db, "tasks"), {
-      name,
-      points,
-      targetCount: perDay,
-      assignedTo,
-      repeatInterval: intervalDays,
-      doneBy: "",
-      lastDoneAt: "",
-      lastResetDate: "",
-      availableFrom: ""
+    await addDoc(collection(db, 'tasks'), {
+      name: taskName,
+      points: taskPoints,
+      targetCount: taskPerDay,
+      assignedTo: taskAssignee === 'all' ? ['all'] : [taskAssignee],
+      repeatInterval: taskInterval,
+      doneBy: '',
+      lastDoneAt: '',
+      availableFrom: '',
     });
-    setSuccessMsg(`"${name}" erfolgreich erstellt`);
-    setName(""); setPerDay(1); setIntervalDays(1); setPoints(1); setAssignee("all");
-    setTimeout(() => setSuccessMsg(""), 3000);
+    setTaskName('');
   };
 
-  const clearAll = async () => {
-    if (!window.confirm("Alle Tasks löschen?")) return;
-    const snap = await getDocs(collection(db, "tasks"));
-    await Promise.all(snap.docs.map(d => deleteDoc(doc(db, "tasks", d.id))));
-    alert("🗑️ Alle Tasks gelöscht");
+  const addReward = async e => {
+    e.preventDefault();
+    await addDoc(collection(db, 'rewards'), {
+      name: rewardName,
+      cost: rewardCost,
+    });
+    setRewardName('');
+  };
+
+  const clearAllTasks = async () => {
+    if (!window.confirm('Alle Tasks löschen?')) return;
+    const snap = await getDocs(collection(db, 'tasks'));
+    await Promise.all(snap.docs.map(d => deleteDoc(doc(db, 'tasks', d.id))));
+    alert('Alle Tasks gelöscht');
+  };
+
+  const clearAllRewards = async () => {
+    if (!window.confirm('Alle Prämien löschen?')) return;
+    const snap = await getDocs(collection(db, 'rewards'));
+    await Promise.all(snap.docs.map(d => deleteDoc(doc(db, 'rewards', d.id))));
+    alert('Alle Prämien gelöscht');
   };
 
   return (
     <div className="admin-panel">
-      <h2>🔧 Admin-Bereich</h2>
-
+      <h2>🔧 Admin-Bereich {isRewardsMode ? '– Prämien' : '– Aufgaben'}</h2>
       <div className="admin-controls">
         <button className="admin-btn reset" onClick={onReset}>
           🔄 App zurücksetzen
         </button>
-        <button className="admin-btn delete" onClick={clearAll}>
-          🗑️ Alle Tasks löschen
+        <button
+          className="admin-btn delete"
+          onClick={isRewardsMode ? clearAllRewards : clearAllTasks}
+        >
+          🗑️ {isRewardsMode ? 'Alle Prämien löschen' : 'Alle Tasks löschen'}
         </button>
-        <button className="admin-btn add" onClick={onCloseAdmin}>
-          ↩️ Zurück
+        <button
+          className="admin-btn"
+          onClick={() => setRewardsMode(!isRewardsMode)}
+        >
+          {isRewardsMode ? '📝 Aufgaben bearbeiten' : '🏆 Prämien bearbeiten'}
         </button>
+        <button className="admin-close" onClick={onCloseAdmin}>✕</button>
       </div>
 
-      <form onSubmit={submit} className="admin-form">
-        <h3>Neue Aufgabe anlegen</h3>
-
-        {/* Erfolgsmeldung nun direkt hier */}
-        {successMsg && (
-          <div className="success-message">
-            {successMsg}
-          </div>
-        )}
-
-        <label>
-          Aufgabenname
-          <input
-            type="text"
-            placeholder="z.B. Küche aufräumen"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            required
-          />
-        </label>
-
-        <label>
-          Wiederholungen pro Tag
-          <input
-            type="number"
-            min="1"
-            value={perDay}
-            onChange={e => setPerDay(+e.target.value)}
-          />
-        </label>
-
-        <label>
-          Intervall in Tagen
-          <input
-            type="number"
-            min="1"
-            value={intervalDays}
-            onChange={e => setIntervalDays(+e.target.value)}
-          />
-        </label>
-
-        <label>
-          Punktewert
-          <input
-            type="number"
-            min="1"
-            value={points}
-            onChange={e => setPoints(+e.target.value)}
-          />
-        </label>
-
-        <label>
-          Zugewiesen an
-          <select
-            value={assignee}
-            onChange={e => setAssignee(e.target.value)}
-          >
-            <option value="all">Alle Nutzer</option>
-            {users.map(u => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
-        </label>
-
-        <button type="submit" className="admin-btn add">
-          ➕ Aufgabe hinzufügen
-        </button>
-      </form>
+      {isRewardsMode ? (
+        <form onSubmit={addReward} className="admin-form">
+          <h3>Neue Prämie hinzufügen</h3>
+          <label>
+            Prämienname
+            <input
+              type="text"
+              value={rewardName}
+              onChange={e => setRewardName(e.target.value)}
+              placeholder="z.B. Kinoabend"
+              required
+            />
+          </label>
+          <label>
+            Kosten (Punkte)
+            <input
+              type="number"
+              min="1"
+              value={rewardCost}
+              onChange={e => setRewardCost(+e.target.value)}
+            />
+          </label>
+          <button type="submit" className="admin-btn add">
+            ➕ Prämie hinzufügen
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={addTask} className="admin-form">
+          <h3>Neue Aufgabe anlegen</h3>
+          <label>
+            Aufgabenname
+            <input
+              type="text"
+              value={taskName}
+              onChange={e => setTaskName(e.target.value)}
+              placeholder="z.B. Küche aufräumen"
+              required
+            />
+          </label>
+          <label>
+            Punktewert
+            <input
+              type="number"
+              min="1"
+              value={taskPoints}
+              onChange={e => setTaskPoints(+e.target.value)}
+            />
+          </label>
+          <label>
+            Wiederholungen pro Tag
+            <input
+              type="number"
+              min="1"
+              value={taskPerDay}
+              onChange={e => setTaskPerDay(+e.target.value)}
+            />
+          </label>
+          <label>
+            Intervall in Tagen
+            <input
+              type="number"
+              min="1"
+              value={taskInterval}
+              onChange={e => setTaskInterval(+e.target.value)}
+            />
+          </label>
+          <label>
+            Zugewiesen an
+            <select
+              value={taskAssignee}
+              onChange={e => setTaskAssignee(e.target.value)}
+            >
+              <option value="all">Alle Nutzer</option>
+              {users.map(u => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" className="admin-btn add">
+            ➕ Aufgabe hinzufügen
+          </button>
+        </form>
+      )}
     </div>
   );
 }

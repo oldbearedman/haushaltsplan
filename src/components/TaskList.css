@@ -1,0 +1,100 @@
+/* src/components/TaskList.css */
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px 20px;
+  overflow-y: auto;
+}
+
+.task-card {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--card-bg);
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.task-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.assignees-stack {
+  display: flex;
+  margin-right: 8px;
+}
+
+.assignee-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid transparent;
+  margin-left: -10px;
+}
+
+.assignee-avatar:first-child {
+  margin-left: 0;
+}
+
+.task-info {
+  flex: 1;
+}
+
+.task-title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.done-button {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: var(--primary);
+  color: white;
+  transition: background 0.2s;
+}
+
+.done-button.grey {
+  background: #ccc;
+  color: #666;
+  cursor: default;
+}
+
+.task-label {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #555;
+  pointer-events: none;
+  background: transparent;
+}
+
+.task-card.locked .done-button {
+  background: transparent;
+  color: #888;
+}
+
+.task-card.done .done-button {
+  background: #ffcc00;
+  color: #fff;
+}
+/* ausgegraute Tasks */
+.task-card.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

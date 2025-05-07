@@ -1,55 +1,60 @@
 // src/App.jsx
 import React, { useState, useEffect, useRef } from "react";
+import useRewards   from "./hooks/useRewards";
 import "./App.css";
-import getIcon from "./utils/getIcon";
-import UserList from "./UserList";
-import useUsers from "./hooks/useUsers";
-import useTasks from "./hooks/useTasks";
-import useLevel from "./hooks/useLevel";
+import getIcon      from "./utils/getIcon";
+import UserList     from "./UserList";
+import useUsers     from "./hooks/useUsers";
+import useTasks     from "./hooks/useTasks";
+import useLevel     from "./hooks/useLevel";
 import { collection, getDocs, updateDoc, doc, increment } from "firebase/firestore";
-import { db } from "./firebase";
-import confetti from "canvas-confetti";
+import { db }       from "./firebase";
+import confetti     from "canvas-confetti";
 
-import Header from "./components/Header";
-import Stats from "./components/Stats";
-import TabBar from "./components/TabBar";
-import TaskList from "./components/TaskList";
-import DoneList from "./components/DoneList";
-import PinModal from "./components/PinModal";
-import AdminPanel from "./components/AdminPanel";
-import TaskForm from "./components/TaskForm";
+import Header       from "./components/Header";
+import Stats        from "./components/Stats";
+import TabBar       from "./components/TabBar";
+import TaskList     from "./components/TaskList";
+import DoneList     from "./components/DoneList";
+import RewardsList  from "./components/RewardsList";
+import PinModal     from "./components/PinModal";
+import AdminPanel   from "./components/AdminPanel";
+import TaskForm     from "./components/TaskForm";
 
 export default function App() {
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [showLevelUp, setShowLevelUp] = useState(false);
-  const [adminMode, setAdminMode] = useState(false);
-  const [pinOpen, setPinOpen] = useState(false);
-  const [pinInput, setPinInput] = useState("");
-  const [view, setView] = useState("tasks");
-  const [points, setPoints] = useState(0);
+  const [selectedUser, setSelectedUser]           = useState(null);
+  const [showLevelUp,  setShowLevelUp]            = useState(false);
+  const [showRedeemSuccess, setShowRedeemSuccess] = useState(false);
+  const [redeemedPrizes,   setRedeemedPrizes]     = useState([]);
+  const [adminMode,    setAdminMode]              = useState(false);
+  const [view,         setView]                   = useState("tasks");
+  const [pinOpen,      setPinOpen]                = useState(false);
+  const [pinInput,     setPinInput]               = useState("");
+  const [points,       setPoints]                 = useState(0);
 
-  const users = useUsers();
-  const { tasks, loading, error } = useTasks(selectedUser?.id);
+  const users                         = useUsers();
+  const { tasks, loading, error }     = useTasks(selectedUser?.id);
+  const { rewards }                   = useRewards();
   const { level, levelName, xpProgress, xpToNext, addXp, setXp } = useLevel(0);
 
-  // Ref, um den vorherigen Level zu merken
+  // Ref to store previous level for confetti
   const prevLevelRef = useRef(level);
 
-  // Beim User-Wechsel initial XP/Points setzen
+  // Load user’s XP/points on selection
   useEffect(() => {
     setAdminMode(false);
     if (!selectedUser) return;
     (async () => {
-      const snap = await getDocs(collection(db, "users"));
+      const snap  = await getDocs(collection(db, "users"));
       const meDoc = snap.docs.find(d => d.id === selectedUser.id);
-      const me = meDoc?.data() || {};
+      const me    = meDoc?.data() || {};
       setPoints(me.points || 0);
       setXp(me.xp || 0);
-      prevLevelRef.current = me.xp != null ? me.xp : level;
+      prevLevelRef.current = me.xp || 0;
     })();
-  }, [selectedUser, setXp, level]);
+  }, [selectedUser, setXp]);
 
-  // Konfetti einmal pro Level-Aufstieg
+  // Fire confetti once per level up
   useEffect(() => {
     const prev = prevLevelRef.current;
     if (level > prev) {
@@ -60,6 +65,7 @@ export default function App() {
     prevLevelRef.current = level;
   }, [level]);
 
+  // Admin: reset all tasks and users
   const handleResetAll = async () => {
     if (!window.confirm("Alles zurücksetzen?")) return;
     const [tSnap, uSnap] = await Promise.all([
@@ -78,6 +84,7 @@ export default function App() {
     window.location.reload();
   };
 
+  // Complete or undo a task
   const handleComplete = async (task, mode = "toggle") => {
     if (!selectedUser) return;
     const tRef = doc(db, "tasks", task.id);
@@ -94,7 +101,7 @@ export default function App() {
       delta = -task.points * (multi ? (task.targetCount || 1) : 1);
     } else if (multi) {
       const newCount = (task.count || 0) + 1;
-      const done = newCount >= task.targetCount;
+      const done     = newCount >= task.targetCount;
       if (done) delta = task.points;
       const nextAvailable = done
         ? new Date(Date.now() + task.repeatInterval * 86400000)
@@ -125,6 +132,31 @@ export default function App() {
     }
   };
 
+  // Redeem a prize
+  const handleRedeem = async prize => {
+    if (!selectedUser || points < prize.cost) return;
+    const uRef = doc(db, "users", selectedUser.id);
+    await updateDoc(uRef, { points: increment(-prize.cost), xp: increment(-prize.cost) });
+    setPoints(p => p - prize.cost);
+    setShowRedeemSuccess(true);
+    confetti({ particleCount: 100, spread: 50, origin: { y: 0.3 } });
+    setTimeout(() => setShowRedeemSuccess(false), 3000);
+    setView("done");
+         // neuen Eintrag in redeemedPrizes anlegen
+     setRedeemedPrizes(ps => [
+       ...ps,
+       {
+         id: prize.id,
+         name: prize.name,
+         redeemedBy: selectedUser.name,
+         redeemedById: selectedUser.id,
+         redeemedAt: new Date().toISOString().slice(0, 10)
+       }
+     ]);
+    // Optionally: add to a redeemedPrizes state to render under DoneList
+  };
+
+  // Handle PIN input
   const handlePinInput = digit => {
     const next = pinInput + digit;
     setPinInput(next);
@@ -136,6 +168,7 @@ export default function App() {
     }
   };
 
+  // Header back button
   const handleBack = () => {
     if (view === "rewards") setView("tasks");
     else setSelectedUser(null);
@@ -143,19 +176,28 @@ export default function App() {
 
   return (
     <div className="app-wrapper">
+      {/* Level-Up Popup */}
       {showLevelUp && (
         <div className="level-up-popup">
           <div>🎉 Level {level} erreicht! 🎉</div>
           <div>🎉 {levelName} 🎉</div>
         </div>
       )}
+      {/* Redeem Success Popup */}
+      {showRedeemSuccess && (
+        <div className="level-up-popup" style={{ background: "#FFD700" }}>
+          <div>🎉 Prämie eingelöst! 🎉</div>
+        </div>
+      )}
 
+      {/* Header */}
       <Header
         selectedUser={selectedUser}
         onBack={handleBack}
         onOpenAdmin={() => { setPinOpen(true); setPinInput(""); }}
       />
 
+      {/* Stats */}
       {selectedUser && (
         <Stats
           level={level}
@@ -167,10 +209,12 @@ export default function App() {
         />
       )}
 
+      {/* TabBar */}
       {selectedUser && !adminMode && (
         <TabBar view={view} setView={setView} />
       )}
 
+      {/* Main Content */}
       <main className="content">
         {!selectedUser ? (
           <UserList onUserSelect={setSelectedUser} />
@@ -195,14 +239,22 @@ export default function App() {
             onComplete={handleComplete}
           />
         ) : view === "done" ? (
-          <DoneList
-            tasks={tasks}
-            currentUserId={selectedUser.id}
-            onUndo={t => handleComplete(t, "remove")}
+                   <DoneList
+                     tasks={tasks}
+                     redeemedPrizes={redeemedPrizes}
+                     currentUserId={selectedUser.id}
+                     onUndo={t => handleComplete(t, "remove")}
+                   />
+        ) : view === "rewards" ? (
+          <RewardsList
+            rewards={rewards}
+            points={points}
+            onRedeem={handleRedeem}
           />
         ) : null}
       </main>
 
+      {/* PIN-Modal */}
       {pinOpen && (
         <PinModal
           currentPinLength={pinInput.length}
