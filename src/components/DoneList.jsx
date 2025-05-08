@@ -1,8 +1,8 @@
 // src/components/DoneList.jsx
 import React from "react";
+import "./TaskList.css"; // Für das Scroll-Verhalten
 import { assigneeColors } from "../utils/assigneeColors";
 import useUsers from "../hooks/useUsers";
-import "./DoneList.css";  // neues CSS importieren
 
 export default function DoneList({
   tasks = [],
@@ -23,7 +23,8 @@ export default function DoneList({
     (task.completions || []).map(c => ({
       ...c,
       taskId: task.id,
-      taskName: task.name
+      taskName: task.name,
+      taskPoints: task.points || 0
     }))
   );
 
@@ -36,7 +37,7 @@ export default function DoneList({
 
   if (!hasAnyCompletions && !hasAnyPrizes) {
     return (
-      <div style={{ textAlign: "center", marginTop: 40 }}>
+      <div style={{ textAlign: "center", marginTop: "40px" }}>
         <p>Keine erledigten Aufgaben oder Prämien.</p>
       </div>
     );
@@ -62,15 +63,6 @@ export default function DoneList({
     );
   };
 
-  const formatTimestamp = iso => {
-    const d = new Date(iso);
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
-    return `${day}.${month} ${hh}:${mm}`;
-  };
-
   const renderCompletion = list =>
     list.map((c, i) => {
       const user = users.find(u => u.id === c.userId);
@@ -87,15 +79,23 @@ export default function DoneList({
             margin: "0 14px 12px",
             display: "flex",
             alignItems: "center",
-            padding: 8
+            padding: "8px"
           }}
         >
           {renderAvatar(c.userId)}
           <div style={{ flex: 1 }}>
             <div className="task-title">{c.taskName}</div>
-            <div className="done-by">
+            <div
+              className="done-by"
+              style={{
+                fontSize: "0.75rem",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis"
+              }}
+            >
               Erledigt von {user?.name || c.userName} am{" "}
-              {formatTimestamp(c.timestamp || c.date)}
+              {c.date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$3.$2")}
             </div>
           </div>
           {isOwn ? (
@@ -128,18 +128,27 @@ export default function DoneList({
             margin: "0 14px 12px",
             display: "flex",
             alignItems: "center",
-            padding: 8,
+            padding: "8px",
             background: "#fffbea"
           }}
         >
           {renderAvatar(p.redeemedById)}
           <div style={{ flex: 1 }}>
             <div className="task-title">{p.name}</div>
-            <div className="done-by">
-              Eingelöst von {p.redeemedBy} am {formatTimestamp(p.redeemedAt)}
+            <div
+              className="done-by"
+              style={{
+                fontSize: "0.75rem",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis"
+              }}
+            >
+              Eingelöst von {p.redeemedBy} am{" "}
+              {p.redeemedAt.replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$3.$2")}
             </div>
           </div>
-          <div style={{ fontSize: "1.2rem", marginRight: 8 }}>⭐️⭐️</div>
+          <div style={{ fontSize: "1.2rem", marginRight: 8 }}>⭐️⭐️⭐️</div>
           {isOwn && (
             <button className="done-button grey" disabled>
               🎉
@@ -150,7 +159,7 @@ export default function DoneList({
     });
 
   return (
-    <>
+    <div className="task-list">
       {hasAnyPrizes && (
         <>
           <div className="section-title">Kürzlich eingelöste Prämien</div>
@@ -169,6 +178,6 @@ export default function DoneList({
           {renderCompletion(olderCompletions)}
         </>
       )}
-    </>
+    </div>
   );
 }
