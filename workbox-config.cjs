@@ -1,4 +1,6 @@
 // workbox-config.cjs
+const { BackgroundSyncPlugin } = require('workbox-background-sync');
+
 module.exports = {
   globDirectory: 'dist/',
   swDest: 'dist/sw.js',
@@ -9,6 +11,19 @@ module.exports = {
   clientsClaim: true,
   runtimeCaching: [
     {
+      // 1a) Background Sync für task-Requests
+      urlPattern: /\/api\/tasks/,
+      handler: 'NetworkOnly',
+      options: {
+        plugins: [
+          new BackgroundSyncPlugin('taskQueue', {
+            maxRetentionTime: 24 * 60 // bis zu 24 Stunden retry
+          })
+        ]
+      }
+    },
+    {
+      // 1b) API-Requests (ohne Background Sync) als Fallback
       urlPattern: /^\/api\/.*$/i,
       handler: 'NetworkFirst',
       options: {
@@ -28,7 +43,7 @@ module.exports = {
       }
     },
     {
-      urlPattern: ({request}) => request.method === 'GET',
+      urlPattern: ({ request }) => request.method === 'GET',
       handler: 'StaleWhileRevalidate',
       options: {
         cacheName: 'misc-cache-v1',
