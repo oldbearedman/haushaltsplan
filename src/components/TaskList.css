@@ -22,8 +22,8 @@
   transition: opacity 0.3s ease;
 }
 
-/* Sobald eine Aufgabe „done“ ist, wird sie ausgegraut */
-.task-card.done {
+.task-card.done,
+.task-card.disabled {
   opacity: 0.5;
   pointer-events: none;
 }
@@ -51,10 +51,6 @@
 
 .assignee-avatar:first-child {
   margin-left: 0;
-}
-
-.task-info {
-  flex: 1;
 }
 
 .task-title {
@@ -87,37 +83,6 @@
   cursor: default;
 }
 
-.task-label {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.8rem;
-  font-weight: bold;
-  color: #555;
-  pointer-events: none;
-  background: transparent;
-}
-
-.task-card.locked .done-button {
-  background: transparent;
-  color: #888;
-}
-
-/* deaktivierte Tasks (optional, wenn du .disabled nutzt) */
-.task-card.disabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.task-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-
 .task-label-top {
   position: absolute;
   top: 8px;
@@ -134,7 +99,6 @@
   text-align: right;
 }
 
-/* Fortschritts-Dots bei Mehrfach-Aufgaben */
 .dot-progress {
   position: absolute;
   top: 6px;
@@ -157,3 +121,33 @@
   box-shadow: 0 0 6px #00ffcc;
 }
 
+/* Ranglisten-Button */
+.leaderboard-button {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.leaderboard-button .icon-btn {
+  font-size: 1.5rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Alternative: runder Pokal-Button */
+.ranking-button-container {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.trophy-btn {
+  font-size: 1.5rem;
+  background: #ffd700;
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}

@@ -20,7 +20,6 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
     const isMulti = !!task.targetCount;
     const doneMulti = isMulti && completions.length >= task.targetCount;
     const doneSingle = !!task.doneBy;
-
     const enriched = { ...task, assignedTo };
 
     if (doneSingle || doneMulti) {
@@ -36,7 +35,6 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
     const shownUsers = assignedTo.includes("all")
       ? users
       : users.filter(u => assignedTo.includes(u.id));
-
     return (
       <div className="assignees-stack">
         {shownUsers.map((u, idx) => (
@@ -57,9 +55,10 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
 
   const renderTask = (task, status) => {
     const assignedTo = task.assignedTo || [];
-    const color = assignedTo.includes(currentUserId)
-      ? assigneeColors[currentUserId]
-      : "transparent";
+    const color =
+      assignedTo.includes(currentUserId)
+        ? assigneeColors[currentUserId]
+        : "transparent";
 
     let label;
     if (status === "done") {
@@ -68,8 +67,14 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
         : "Heute erledigt";
     } else if (task.availableFrom && task.availableFrom > today) {
       label = `Zu erledigen am ${task.availableFrom}`;
-    } else if (!assignedTo.includes("all") && !assignedTo.includes(currentUserId)) {
-      const names = users.filter(u => assignedTo.includes(u.id)).map(u => u.name).join(", ");
+    } else if (
+      !assignedTo.includes("all") &&
+      !assignedTo.includes(currentUserId)
+    ) {
+      const names = users
+        .filter(u => assignedTo.includes(u.id))
+        .map(u => u.name)
+        .join(", ");
       label = `Zu erledigen von ${names}`;
     } else {
       label = "Heute zu erledigen";
@@ -95,7 +100,6 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
         <div className="task-assignee-top">
           {renderAssignee(assignedTo)}
         </div>
-
         {task.targetCount > 1 && (
           <div className="dot-progress">
             {Array.from({ length: task.targetCount }).map((_, i) => (
@@ -106,7 +110,6 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
             ))}
           </div>
         )}
-
         <div className="task-content">
           <div className="task-title">{task.name}</div>
           <button

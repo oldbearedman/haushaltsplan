@@ -1,0 +1,39 @@
+/* src/components/TabBar.css */
+.tab-bar {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  padding: 8px 0;
+  border-radius: var(--radius);
+  margin: 8px 16px 0;
+  z-index: 9;
+}
+
+.tab-button {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  padding: 4px 0px;      /* oben/unten 8px, links/rechts 6px */
+  background: none;
+  border: none;
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border-radius: 8px;     /* etwas abgerundet */
+}
+
+.tab-button.active {
+  color: var(--primary);
+  background: var(--primary-light);
+}
+/* src/components/TabBar.css */
+.tab-button {
+  flex: none;
+  margin: 0 4px;          /* Abstand zwischen den Buttons */
+  padding: 6px 8px;
+  min-width: 120px;        /* fixe Mindestbreite */
+}

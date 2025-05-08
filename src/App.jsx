@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import useRewards from "./hooks/useRewards";
 import "./App.css";
-import getIcon from "./utils/getIcon";
 import UserList from "./UserList";
 import useUsers from "./hooks/useUsers";
 import useTasks from "./hooks/useTasks";
@@ -25,6 +24,7 @@ import DoneList from "./components/DoneList";
 import RewardsList from "./components/RewardsList";
 import AdminPanel from "./components/AdminPanel";
 import PinModal from "./components/PinModal";
+import Ranking from "./components/Ranking";
 
 export default function App() {
   const [selectedUser, setSelectedUser] = useState(null);
@@ -35,7 +35,7 @@ export default function App() {
   const [view, setView] = useState("tasks");
   const [pinOpen, setPinOpen] = useState(false);
   const [pinInput, setPinInput] = useState("");
-  const [pinMode, setPinMode] = useState("");            // "admin" oder "login"
+  const [pinMode, setPinMode] = useState("");
   const [loginPendingUser, setLoginPendingUser] = useState(null);
 
   const [points, setPoints] = useState(0);
@@ -119,6 +119,7 @@ export default function App() {
     let delta = 0;
     const completions = Array.isArray(task.completions) ? task.completions : [];
     const isMulti = !!task.targetCount;
+
     if (mode === "remove" && isMulti) {
       const updated = completions.filter(c => {
         if (!targetCompletion) return c.userId !== selectedUser.id;
@@ -152,6 +153,7 @@ export default function App() {
         delta = pts;
       }
     }
+
     if (delta !== 0) {
       await updateDoc(uRef, {
         points: increment(delta),
@@ -234,8 +236,11 @@ export default function App() {
 
   // Back-Button
   const handleBack = () => {
-    if (view === "rewards") setView("tasks");
-    else setSelectedUser(null);
+    if (view === "rewards" || view === "rankings") {
+      setView("tasks");
+    } else {
+      setSelectedUser(null);
+    }
   };
 
   return (
@@ -288,11 +293,12 @@ export default function App() {
             onCloseAdmin={() => setAdminMode(false)}
           />
         ) : view === "tasks" ? (
-          <TaskList
-            tasks={tasks}
-            currentUserId={selectedUser.id}
-            onComplete={handleComplete}
-          />
+                 <TaskList
+         tasks={tasks}
+         currentUserId={selectedUser.id}
+         onComplete={handleComplete}
+         onShowLeaderboard={() => setView("rankings")}
+       />
         ) : view === "done" ? (
           <DoneList
             tasks={tasks}
@@ -307,6 +313,8 @@ export default function App() {
             onRedeem={handleRedeem}
             currentUserId={selectedUser.id}
           />
+        ) : view === "rankings" ? (
+          <Ranking users={users} />
         ) : null}
       </main>
 

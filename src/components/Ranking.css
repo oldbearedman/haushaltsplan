@@ -1,0 +1,71 @@
+/* src/components/Ranking.css */
+
+.ranking-panel {
+  padding: 1rem;
+}
+
+.ranking-panel h2 {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.ranking-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.ranking-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+}
+
+.ranking-info {
+  flex: 1;
+  margin-left: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Username & Level X bleiben linksbündig */
+  text-align: left;
+}
+
+/* Level-Name zentriert direkt über dem Username */
+.ranking-levelname-container {
+  align-self: center;       /* horizontale Zentrierung im flex-Container */
+  font-weight: 700;         /* schön dick */
+  font-size: 1.1em;         /* etwas größer */
+  font-style: italic;
+  color: #444;
+  margin-bottom: 0.3rem;    /* Abstand zum Username */
+}
+
+.ranking-name {
+  font-weight: 600;
+}
+
+.ranking-level {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 0.25rem;
+}
+
+.ranking-points {
+  font-weight: bold;
+  margin-left: 1rem;
+}
