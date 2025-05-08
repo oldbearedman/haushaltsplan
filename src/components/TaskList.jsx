@@ -11,18 +11,17 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
 
   // Aufgaben nach Status sortieren
   tasks.forEach(task => {
-    const assigneeId = (task.assignedTo || [])[0];
+    const assignedTo = task.assignedTo || [];
     const isLocked =
       (task.availableFrom && task.availableFrom > today) ||
-      (assigneeId !== "all" && assigneeId !== currentUserId);
+      (!assignedTo.includes("all") && !assignedTo.includes(currentUserId));
 
-    // Einzel- vs. Mehrfach-Aufgabe erkannt
     const completions = Array.isArray(task.completions) ? task.completions : [];
-    const isMulti    = !!task.targetCount;
-    const doneMulti  = isMulti && completions.length >= task.targetCount;
+    const isMulti = !!task.targetCount;
+    const doneMulti = isMulti && completions.length >= task.targetCount;
     const doneSingle = !!task.doneBy;
 
-    const enriched = { ...task, assigneeId };
+    const enriched = { ...task, assignedTo };
 
     if (doneSingle || doneMulti) {
       doneTasks.push(enriched);
@@ -33,42 +32,35 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
     }
   });
 
-  const renderAssignee = assigneeId => {
-    if (assigneeId === "all") {
-      return (
-        <div className="assignees-stack">
-          {users.map((u, idx) => (
-            <img
-              key={u.id}
-              src={`/profiles/${u.name.toLowerCase()}.jpg`}
-              alt={u.name}
-              className="assignee-avatar small"
-              style={{
-                borderColor: assigneeColors[u.id] || "transparent",
-                zIndex: users.length - idx
-              }}
-            />
-          ))}
-        </div>
-      );
-    }
-    const user = users.find(u => u.id === assigneeId);
-    const name = user?.name?.toLowerCase() || assigneeId;
+  const renderAssignee = assignedTo => {
+    const shownUsers = assignedTo.includes("all")
+      ? users
+      : users.filter(u => assignedTo.includes(u.id));
+
     return (
-      <img
-        src={`/profiles/${name}.jpg`}
-        alt={user?.name || assigneeId}
-        className="assignee-avatar small"
-        style={{ borderColor: assigneeColors[assigneeId] || "transparent" }}
-      />
+      <div className="assignees-stack">
+        {shownUsers.map((u, idx) => (
+          <img
+            key={u.id}
+            src={`/profiles/${u.name.toLowerCase().replace(/\s+/g, "")}.jpg`}
+            alt={u.name}
+            className="assignee-avatar small"
+            style={{
+              borderColor: assigneeColors[u.id] || "transparent",
+              zIndex: users.length - idx
+            }}
+          />
+        ))}
+      </div>
     );
   };
 
   const renderTask = (task, status) => {
-    const { assigneeId } = task;
-    const color = assigneeColors[assigneeId] || "transparent";
+    const assignedTo = task.assignedTo || [];
+    const color = assignedTo.includes(currentUserId)
+      ? assigneeColors[currentUserId]
+      : "transparent";
 
-    // Label
     let label;
     if (status === "done") {
       label = task.availableFrom
@@ -76,10 +68,9 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
         : "Heute erledigt";
     } else if (task.availableFrom && task.availableFrom > today) {
       label = `Zu erledigen am ${task.availableFrom}`;
-    } else if (assigneeId !== "all" && assigneeId !== currentUserId) {
-      label = `Zu erledigen von ${
-        users.find(u => u.id === assigneeId)?.name || ""
-      }`;
+    } else if (!assignedTo.includes("all") && !assignedTo.includes(currentUserId)) {
+      const names = users.filter(u => assignedTo.includes(u.id)).map(u => u.name).join(", ");
+      label = `Zu erledigen von ${names}`;
     } else {
       label = "Heute zu erledigen";
     }
@@ -92,11 +83,8 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
         ? "🔄"
         : <span style={{ color: "#222" }}>🔒</span>;
 
-    // Fortschritts-Berechnung pro User
     const completions = Array.isArray(task.completions) ? task.completions : [];
-    const doneToday = completions.filter(
-      c => c.date === today
-    ).length;
+    const doneToday = completions.filter(c => c.date === today).length;
 
     return (
       <div
@@ -105,10 +93,9 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
         style={{ borderColor: color }}
       >
         <div className="task-assignee-top">
-          {renderAssignee(assigneeId)}
+          {renderAssignee(assignedTo)}
         </div>
 
-        {/* Nur bei Mehrfach-Aufgaben: Fortschritts-Punkte */}
         {task.targetCount > 1 && (
           <div className="dot-progress">
             {Array.from({ length: task.targetCount }).map((_, i) => (
@@ -138,8 +125,8 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
   return (
     <div className="task-list">
       {available.map(t => renderTask(t, "available"))}
-      {locked   .map(t => renderTask(t, "locked"   ))}
-      {doneTasks.map(t => renderTask(t, "done"     ))}
+      {locked.map(t => renderTask(t, "locked"))}
+      {doneTasks.map(t => renderTask(t, "done"))}
     </div>
   );
 }

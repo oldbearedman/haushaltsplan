@@ -8,169 +8,173 @@
   box-sizing: border-box;
 }
 
-/* Header mit Buttons – bleibt immer oben */
+/* Header mit Buttons */
 .admin-header {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  flex: 0 0 auto;
+  gap: 0.5rem;
+  margin: 0 1rem 0.5rem;
 }
 .admin-header button {
-  flex: 0 0 auto;
-  padding: 0.5rem 1rem;
-  min-width: 120px;
-  font-size: 0.9rem;
-  box-sizing: border-box;
+  padding: 0.4rem 0.8rem;
+  min-width: 100px;
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 
-/* Scroll-Container unterhalb des Headers */
+/* Scrollbereich */
 .admin-content {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
+  flex: 1;
   overflow-y: auto;
+  padding-bottom: 5rem;
+  max-height: calc(100vh - 150px);
 }
 
-/* Formularbereich */
+/* Formular */
 .admin-form {
-  flex: 0 0 auto;
-  margin: 0 1rem 1rem;
-  padding: 1rem;
+  margin: 0 1rem 0.5rem;
+  padding: 0.75rem;
   background: #fafafa;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-}
-.admin-form form {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 .admin-form label {
   display: flex;
   flex-direction: column;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
 }
 .admin-form input,
 .admin-form select {
-  padding: 0.5rem;
-  width: 100%;
-  box-sizing: border-box;
+  padding: 0.4rem;
   margin-top: 0.25rem;
-}
-
-/* Tabelle */
-.admin-table-wrapper {
-  flex: 1 1 auto;
-  /* kein eigenes scroll, übergibt an .admin-content */
-}
-.admin-table-wrapper table {
+  font-size: 0.9rem;
+  box-sizing: border-box;
   width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;
 }
-.admin-table-wrapper th,
+
+/* Liste als Karten */
+.admin-table-wrapper {
+  margin: 0 1rem 2rem;
+  padding-bottom: 4rem; /* Platz unter letzter Karte */
+}
+.admin-table-wrapper table,
+.admin-table-wrapper thead,
+.admin-table-wrapper tbody,
+.admin-table-wrapper tr,
 .admin-table-wrapper td {
+  display: block;
+  width: 100%;
+}
+.admin-table-wrapper thead {
+  display: none;
+}
+
+/* Jede Aufgabe als Karte */
+.admin-table-wrapper tr {
+  margin-bottom: 0.4rem;
   padding: 0.5rem 0.75rem;
-  text-align: left;
-  vertical-align: middle;
-  border-bottom: 1px solid #eee;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
 }
-.admin-table-wrapper th {
-  background: #f5f5f5;
+
+/* Zellen innerhalb der Karte */
+.admin-table-wrapper td {
+  flex: 1 1 150px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: none;
+  padding: 0.2rem 0;
+}
+.admin-table-wrapper td::before {
   font-weight: 600;
-  position: sticky;
-  top: 0;
-  z-index: 1;
 }
+.admin-table-wrapper td:nth-of-type(1)::before { content: "Name:"; }
+.admin-table-wrapper td:nth-of-type(2)::before { content: "Punkte:"; }
+/* Intervall-Label entfernen */
+.admin-table-wrapper td:nth-of-type(3)::before { content: "Pro Tag:"; }
+/* kein eigenes Label für Intervall-Zelle mehr */
+.admin-table-wrapper td:nth-of-type(4)::before { content: none; }
+/* Zugeordnet an */
+.admin-table-wrapper td:nth-of-type(5)::before { content: "Zugeordnet an:"; }
+/* Aktion */
+.admin-table-wrapper td:nth-of-type(6)::before { content: "Aktion:"; }
 
-/* Aktion-Spalte (Edit/Delete Buttons) */
-.admin-table-wrapper th.action-cell,
-.admin-table-wrapper td.action-cell {
-  width: 40px;
-  text-align: center;
-  padding: 0;
-  white-space: nowrap;
-}
-
-/* Inputs und Selects in der Edit-Zeile */
+/* Editier-Felder */
 .admin-table-wrapper tr input,
 .admin-table-wrapper tr select {
   width: 100%;
-  padding: 0.4rem;
-  font-size: 0.9rem;
+  padding: 0.3rem;
+  font-size: 0.85rem;
   box-sizing: border-box;
 }
-
-/* Avatare (überlappend im AdminPanel, nutzt TaskList.css für .assignees-stack optional) */
-.assigned-avatars {
-  display: flex;
-  align-items: center;
+/* in Edit-Zeilen alle CSS-Labels ausblenden */
+.admin-table-wrapper td:has(input)::before,
+.admin-table-wrapper td:has(select)::before {
+  content: none !important;
 }
-.assigned-avatars .avatar {
-  width: 32px;
-  height: 32px;
-  border: 2px solid #fff;
+
+/* Aktion-Buttons rechts */
+.admin-table-wrapper td:nth-of-type(6) {
+  justify-content: flex-end;
+}
+
+/* Avatare */
+.assignees-stack {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+.assignee-avatar {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   object-fit: cover;
-  background: #fff;
-  margin-left: -10px;
-}
-.assigned-avatars .avatar:first-child {
-  margin-left: 0;
+  border: 2px solid #fff;
 }
 
-/* Icon-Buttons (Speichern/Abbrechen/Löschen/Edit) */
+/* Icon-Buttons */
 .icon-btn {
   background: none !important;
   border: none;
-  padding: 2px;
-  margin: 0 1px;
+  padding: 0;
+  margin: 0;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 1.2rem;
   line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: inherit;
 }
-.icon-btn:hover {
-  background: none !important;
-}
+.icon-btn[title="Speichern"] { color: #2e7d32; }
+.icon-btn[title="Abbrechen"] { color: #616161; }
+.icon-btn.delete-btn { color: #d32f2f; }
 
-/* Speichern-Icon etwas grün */
-.icon-btn[title="Speichern"] {
-  color: #2e7d32;
+/* Checkbox-Gruppe */
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  padding: 0.4rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #f7f7f7;
 }
-
-/* Abbrechen-Icon etwas grau */
-.icon-btn[title="Abbrechen"] {
-  color: #616161;
+.checkbox-group label {
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
 }
-
-/* Löschen-Icon extra rot */
-.delete-btn {
-  color: #d32f2f;
-}
-/* am Ende von AdminPanel.css */
-
-.admin-content {
-  /* …bestehende Styles… */
-  padding-bottom: 10rem;  /* Puffer unter dem Inhalt zum ordentlichen Scrollen */
-}
-
-.admin-table-wrapper {
-  /* …bestehende Styles… */
-  margin-bottom: 5rem;   /* Abstand unter der Tabelle */
-}
-/* Damit die Avatare beim Scrollen hinter dem Table-Header verschwinden */
-.admin-table-wrapper {
-  position: relative; /* neuer Stack‐Context */
-}
-
-.admin-table-wrapper th {
-  position: sticky;
-  top: 0;
-  z-index: 100;         /* höher als jedes Avatar‐zIndex */
-  background: #f5f5f5;  /* damit der Header den Avatar überdeckt */
+.checkbox-group input[type="checkbox"] {
+  margin-right: 0.25rem;
+  width: 1rem;
+  height: 1rem;
+  accent-color: #4caf50;
 }
