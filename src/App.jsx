@@ -25,9 +25,16 @@ import RewardsList from "./components/RewardsList";
 import AdminPanel from "./components/AdminPanel";
 import PinModal from "./components/PinModal";
 import Ranking from "./components/Ranking";
+import NetworkIndicator from "./components/NetworkIndicator";
 
 export default function App() {
+  // 1. Banner-State
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+
+  // 2. Dein User-State
   const [selectedUser, setSelectedUser] = useState(null);
+
+  // Weiterer State
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [showRedeemSuccess, setShowRedeemSuccess] = useState(false);
   const [redeemedPrizes, setRedeemedPrizes] = useState([]);
@@ -38,7 +45,10 @@ export default function App() {
   const [pinMode, setPinMode] = useState("");
   const [loginPendingUser, setLoginPendingUser] = useState(null);
 
+  // Punkte/XP
   const [points, setPoints] = useState(0);
+
+  // Hooks & Refs
   const users = useUsers();
   const { tasks, loading, error } = useTasks();
   const { rewards } = useRewards();
@@ -51,6 +61,25 @@ export default function App() {
     setXp
   } = useLevel(0);
   const prevLevelRef = useRef(level);
+
+  // Service-Worker–Update-Listener
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.addEventListener("updatefound", () => {
+          const newSW = registration.installing;
+          newSW.addEventListener("statechange", () => {
+            if (
+              newSW.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
+              setShowUpdateBanner(true);
+            }
+          });
+        });
+      });
+    }
+  }, []);
 
   // Punkte/XP laden bei User-Wechsel
   useEffect(() => {
@@ -245,6 +274,16 @@ export default function App() {
 
   return (
     <div className="app-wrapper">
+      <NetworkIndicator />
+      {/* Update-Banner bei neuer SW */}
+    {showUpdateBanner && (
+      <div className="update-banner">
+        Neue Version verfügbar!{" "}
+        <button onClick={() => window.location.reload()}>
+          Neu laden
+        </button>
+      </div>
+    )}
       {showLevelUp && (
         <div className="level-up-popup">
           <div>🎉 Level {level} erreicht! 🎉</div>
