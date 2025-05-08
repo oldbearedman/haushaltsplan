@@ -1,7 +1,12 @@
 // src/hooks/useLevel.js
 import { useState, useCallback, useEffect } from "react";
 
-const levelThresholds = Array.from({ length: 99 }, (_, i) => 40 + i * 15);
+// Dynamische XP-Berechnung pro Level
+function getXpThreshold(level) {
+  const base = 30; // statt 60
+  return Math.floor(base + (level - 1) * 8 + Math.pow(level, 1.2));
+}
+
 const levelNames = [
   "Looser", "Knecht", "Putzlehrling", "Chaoskind", "Staubfänger",
   "Staublegende", "Dreckbezwinger", "Reinigungsrookie", "Schmutzquerulant",
@@ -18,13 +23,12 @@ const levelNames = [
   "Ordnungsoffizier", "Blitzblank-Boss", "Politur-Pilot", "Staubsturm",
   "Besen-Berserker", "Wischwikinger", "Reinheitsritter", "Glanzgladiator",
   "Putz-Pate", "Hygieneheld", "Sauberkeits-Sultan", "Schmutzschreck",
-  "Ordnungsoffizier", "Blitzblank-Bischof", "Politur-Profi", "Staubstaat",
-  "Kehrkaiser", "Wischwarrior", "Reinlichkeits-Rebell", "Glanzguru",
-  "Putzprinzipat", "Hygieneherrscher", "Sauberkeitsstrahl", "Schmutzschlächter",
-  "Ordnungsoffizier", "Blitzblank-Brigadier", "Politur-Papst", "Staubstern",
-  "Besenboss", "Wischwunderkind", "Reinlichkeitsrakete", "Glanz-Gladiator",
-  "Putzphantom", "Hygiene-Hybrid", "Sauberkeits-Spectre", "Schmutzschrecken",
-  "Ordnungsoffizier", "Blitzblank-Berserker", "Politur-Prophet", "Staubspuk",
+  "Blitzblank-Bischof", "Politur-Profi", "Staubstaat", "Kehrkaiser",
+  "Wischwarrior", "Reinlichkeits-Rebell", "Glanzguru", "Putzprinzipat",
+  "Sauberkeitsstrahl", "Schmutzschlächter", "Blitzblank-Brigadier",
+  "Politur-Papst", "Staubstern", "Besenboss", "Wischwunderkind",
+  "Reinlichkeitsrakete", "Glanz-Gladiator", "Putzphantom", "Hygiene-Hybrid",
+  "Sauberkeits-Spectre", "Schmutzschrecken", "Politur-Prophet", "Staubspuk",
   "Kehrkommandant", "Wischwind", "Reinlichkeits-Ritter", "Glanzgartenlord",
   "Putzpanther", "Hygiene-Hokuspokus", "Sauberkeits-Sammler", "Schmutzschleuder",
   "Ultimativer Saubermann"
@@ -34,24 +38,24 @@ export default function useLevel(initialXp = 0) {
   const [xp, setXp] = useState(initialXp);
   const [level, setLevel] = useState(1);
   const [xpProgress, setXpProgress] = useState(0);
-  const [xpToNext, setXpToNext] = useState(levelThresholds[0]);
+  const [xpToNext, setXpToNext] = useState(getXpThreshold(1));
 
   const calculateLevel = useCallback((totalXp) => {
     let lvl = 1;
-    let need = levelThresholds[0];
     let rem = totalXp;
+    let nextXp = getXpThreshold(lvl);
 
-    while (lvl < levelThresholds.length && rem >= need) {
-      rem -= need;
+    while (rem >= nextXp) {
+      rem -= nextXp;
       lvl++;
-      need = levelThresholds[lvl - 1];
+      nextXp = getXpThreshold(lvl);
     }
+
     setLevel(lvl);
     setXpProgress(rem);
-    setXpToNext(need);
+    setXpToNext(nextXp);
   }, []);
 
-  // initial nur einmal ausführen
   useEffect(() => {
     calculateLevel(initialXp);
   }, [initialXp, calculateLevel]);
@@ -72,7 +76,7 @@ export default function useLevel(initialXp = 0) {
   return {
     xp,
     level,
-    levelName: levelNames[level - 1],
+    levelName: levelNames[level - 1] || `Level ${level}`,
     xpProgress,
     xpToNext,
     addXp,

@@ -1,178 +1,300 @@
 // src/components/AdminPanel.jsx
-import React, { useState } from 'react';
-import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase';
+import React, { useState, useEffect } from "react";
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  addDoc,
+  doc
+} from "firebase/firestore";
+import { db } from "../firebase";
+import TaskForm from "./TaskForm";
+import "./AdminPanel.css";
+import "./TaskList.css";
+import { assigneeColors } from "../utils/assigneeColors";
 
-export default function AdminPanel({
-  users,
-  onReset,           // App zurücksetzen
-  onResetPrizes,     // eingelöste Prämien zurücksetzen
-  onCloseAdmin,
-  isRewardsMode,
-  setRewardsMode
-}) {
-  // State für Task-Form
-  const [taskName, setTaskName] = useState('');
-  const [taskPoints, setTaskPoints] = useState(1);
-  const [taskPerDay, setTaskPerDay] = useState(1);
-  const [taskInterval, setTaskInterval] = useState(1);
-  const [taskAssignee, setTaskAssignee] = useState('all');
+export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin }) {
+  const [tasks, setTasks] = useState([]);
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [taskData, setTaskData] = useState({ name: "", points: 0, assignedTo: ["all"] });
+  const [showTaskForm, setShowTaskForm] = useState(false);
 
-  // State für Reward-Form
-  const [rewardName, setRewardName] = useState('');
-  const [rewardCost, setRewardCost] = useState(1);
+  const [prizes, setPrizes] = useState([]);
+  const [editingPrizeId, setEditingPrizeId] = useState(null);
+  const [prizeData, setPrizeData] = useState({ name: "", cost: 0, assignedTo: ["all"] });
+  const [showPrizeForm, setShowPrizeForm] = useState(false);
 
-  const addTask = async e => {
-    e.preventDefault();
-    await addDoc(collection(db, 'tasks'), {
-      name: taskName,
-      points: taskPoints,
-      targetCount: taskPerDay,
-      assignedTo: taskAssignee === 'all' ? ['all'] : [taskAssignee],
-      repeatInterval: taskInterval,
-      doneBy: '',
-      lastDoneAt: '',
-      availableFrom: '',
-      completions: []
-    });
-    setTaskName('');
+  useEffect(() => {
+    (async () => {
+      const [tSnap, pSnap] = await Promise.all([
+        getDocs(collection(db, "tasks")),
+        getDocs(collection(db, "rewards"))
+      ]);
+      setTasks(tSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setPrizes(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    })();
+  }, []);
+
+  const startTaskEdit = task => {
+    setEditingTaskId(task.id);
+    setTaskData({ name: task.name, points: task.points, assignedTo: task.assignedTo || ["all"] });
+    setShowTaskForm(false);
+  };
+  const saveTaskEdit = async () => {
+    await updateDoc(doc(db, "tasks", editingTaskId), taskData);
+    setTasks(ts => ts.map(t => t.id === editingTaskId ? { ...t, ...taskData } : t));
+    setEditingTaskId(null);
+  };
+  const cancelTaskEdit = () => setEditingTaskId(null);
+  const deleteTask = async id => {
+    if (!window.confirm("Task wirklich löschen?")) return;
+    await deleteDoc(doc(db, "tasks", id));
+    setTasks(ts => ts.filter(t => t.id !== id));
+    setEditingTaskId(null);
   };
 
-  const addReward = async e => {
-    e.preventDefault();
-    await addDoc(collection(db, 'rewards'), {
-      name: rewardName,
-      cost: rewardCost
-    });
-    setRewardName('');
+  const startPrizeEdit = prize => {
+    setEditingPrizeId(prize.id);
+    setPrizeData({ name: prize.name, cost: prize.cost, assignedTo: prize.assignedTo || ["all"] });
+    setShowPrizeForm(false);
   };
-
-  const clearAllTasks = async () => {
-    if (!window.confirm('Alle Tasks löschen?')) return;
-    const snap = await getDocs(collection(db, 'tasks'));
-    await Promise.all(snap.docs.map(d => deleteDoc(doc(db, 'tasks', d.id))));
-    alert('Alle Tasks gelöscht');
+  const savePrizeEdit = async () => {
+    await updateDoc(doc(db, "rewards", editingPrizeId), prizeData);
+    setPrizes(ps => ps.map(p => p.id === editingPrizeId ? { ...p, ...prizeData } : p));
+    setEditingPrizeId(null);
   };
-
-  const clearAllRewards = async () => {
-    if (!window.confirm('Alle Prämien löschen?')) return;
-    const snap = await getDocs(collection(db, 'rewards'));
-    await Promise.all(snap.docs.map(d => deleteDoc(doc(db, 'rewards', d.id))));
-    alert('Alle Prämien gelöscht');
+  const cancelPrizeEdit = () => setEditingPrizeId(null);
+  const deletePrize = async id => {
+    if (!window.confirm("Prämie wirklich löschen?")) return;
+    await deleteDoc(doc(db, "rewards", id));
+    setPrizes(ps => ps.filter(p => p.id !== id));
+    setEditingPrizeId(null);
+  };
+  const addPrize = async () => {
+    if (!prizeData.name) return;
+    const ref = await addDoc(collection(db, "rewards"), prizeData);
+    setPrizes(ps => [...ps, { id: ref.id, ...prizeData }]);
+    setPrizeData({ name: "", cost: 0, assignedTo: ["all"] });
+    setShowPrizeForm(false);
   };
 
   return (
     <div className="admin-panel">
-      <h2>🔧 Admin-Bereich {isRewardsMode ? '– Prämien' : '– Aufgaben'}</h2>
-      <div className="admin-controls">
-        <button className="admin-btn reset" onClick={onReset}>
-          🔄 App zurücksetzen
-        </button>
-        <button className="admin-btn reset" onClick={onResetPrizes}>
-          ♻️ Prämien zurücksetzen
-        </button>
-        <button
-          className="admin-btn delete"
-          onClick={isRewardsMode ? clearAllRewards : clearAllTasks}
-        >
-          🗑️ {isRewardsMode ? 'Alle Prämien löschen' : 'Alle Tasks löschen'}
-        </button>
-        <button
-          className="admin-btn"
-          onClick={() => setRewardsMode(!isRewardsMode)}
-        >
-          {isRewardsMode ? '📝 Aufgaben bearbeiten' : '🏆 Prämien bearbeiten'}
-        </button>
-        <button className="admin-close" onClick={onCloseAdmin}>
-          ✕
+      <div className="admin-header">
+        <button onClick={onCloseAdmin}>Schließen</button>
+        <button onClick={onReset}>Alle zurücksetzen</button>
+        <button onClick={onResetPrizes}>Prämien zurücksetzen</button>
+        <button onClick={() => { setShowTaskForm(f => !f); setEditingTaskId(null); setShowPrizeForm(false); }}>
+          {showTaskForm ? "Form schließen" : "Neue Aufgabe hinzufügen"}
         </button>
       </div>
 
-      {isRewardsMode ? (
-        <form onSubmit={addReward} className="admin-form">
-          <h3>Neue Prämie hinzufügen</h3>
-          <label>
-            Prämienname
-            <input
-              type="text"
-              value={rewardName}
-              onChange={e => setRewardName(e.target.value)}
-              placeholder="z.B. Kinoabend"
-              required
-            />
-          </label>
-          <label>
-            Kosten (Punkte)
-            <input
-              type="number"
-              min="1"
-              value={rewardCost}
-              onChange={e => setRewardCost(+e.target.value)}
-            />
-          </label>
-          <button type="submit" className="admin-btn add">
-            ➕ Prämie hinzufügen
+      <div className="admin-content">
+        {showTaskForm && (
+          <div className="admin-form">
+            <TaskForm users={users} onSaved={() => setShowTaskForm(false)} />
+          </div>
+        )}
+
+        {/* Tasks Table */}
+        <div className="admin-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Punkte</th>
+                <th>Zugeordnet an</th>
+                <th className="action-cell">Aktion</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map(task => editingTaskId === task.id
+                ? (
+                  <tr key={task.id}>
+                    <td>
+                      <input
+                        value={taskData.name}
+                        onChange={e => setTaskData(d => ({ ...d, name: e.target.value }))}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        value={taskData.points}
+                        onChange={e => setTaskData(d => ({ ...d, points: Number(e.target.value) }))}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        multiple
+                        value={taskData.assignedTo}
+                        onChange={e => {
+                          const vals = Array.from(e.target.selectedOptions, o => o.value);
+                          setTaskData(d => ({ ...d, assignedTo: vals }));
+                        }}
+                        size={Math.min(users.length + 1, 6)}
+                      >
+                        <option value="all">all</option>
+                        {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                    </td>
+                    <td className="action-cell">
+                      <button className="icon-btn" onClick={saveTaskEdit} title="Speichern">✔</button>
+                      <button className="icon-btn" onClick={cancelTaskEdit} title="Abbrechen">✖</button>
+                      <button className="icon-btn delete-btn" onClick={() => deleteTask(task.id)} title="Löschen">🗑</button>
+                    </td>
+                  </tr>
+                )
+                : (
+                  <tr key={task.id}>
+                    <td>{task.name}</td>
+                    <td>{task.points}</td>
+                    <td>
+                      <div className="assignees-stack">
+                        {(task.assignedTo.includes("all") ? users : users.filter(u => task.assignedTo.includes(u.id)))
+                          .map((u, idx) => (
+                            <img
+                              key={u.id}
+                              src={`/profiles/${u.name.toLowerCase().replace(/\s+/g, "")}.jpg`}
+                              alt={u.name}
+                              className="assignee-avatar small"
+                              style={{ borderColor: assigneeColors[u.id] || "transparent", zIndex: users.length - idx }}
+                            />
+                          ))}
+                      </div>
+                    </td>
+                    <td className="action-cell">
+                      <button className="icon-btn" onClick={() => startTaskEdit(task)} title="Bearbeiten">⚙</button>
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="admin-header">
+          <button onClick={() => { setShowPrizeForm(f => !f); setEditingTaskId(null); setShowTaskForm(false); }}>
+            {showPrizeForm ? "Prämien-Form schließen" : "Neue Prämie hinzufügen"}
           </button>
-        </form>
-      ) : (
-        <form onSubmit={addTask} className="admin-form">
-          <h3>Neue Aufgabe anlegen</h3>
-          <label>
-            Aufgabenname
-            <input
-              type="text"
-              value={taskName}
-              onChange={e => setTaskName(e.target.value)}
-              placeholder="z.B. Küche aufräumen"
-              required
-            />
-          </label>
-          <label>
-            Punktewert
-            <input
-              type="number"
-              min="1"
-              value={taskPoints}
-              onChange={e => setTaskPoints(+e.target.value)}
-            />
-          </label>
-          <label>
-            Wiederholungen pro Tag
-            <input
-              type="number"
-              min="1"
-              value={taskPerDay}
-              onChange={e => setTaskPerDay(+e.target.value)}
-            />
-          </label>
-          <label>
-            Intervall in Tagen
-            <input
-              type="number"
-              min="1"
-              value={taskInterval}
-              onChange={e => setTaskInterval(+e.target.value)}
-            />
-          </label>
-          <label>
-            Zugewiesen an
-            <select
-              value={taskAssignee}
-              onChange={e => setTaskAssignee(e.target.value)}
-            >
-              <option value="all">Alle Nutzer</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="submit" className="admin-btn add">
-            ➕ Aufgabe hinzufügen
-          </button>
-        </form>
-      )}
+        </div>
+
+        {showPrizeForm && (
+          <div className="admin-form">
+            <label>
+              Name
+              <input
+                value={prizeData.name}
+                        onChange={e => setPrizeData(d => ({ ...d, name: e.target.value }))}
+              />
+            </label>
+            <label>
+              Punkte (Kosten)
+              <input
+                type="number"
+                value={prizeData.cost}
+                onChange={e => setPrizeData(d => ({ ...d, cost: Number(e.target.value) }))}
+              />
+            </label>
+            <label>
+              Zugeordnet an
+              <select
+                multiple
+                value={prizeData.assignedTo}
+                onChange={e => {
+                  const vals = Array.from(e.target.selectedOptions, o => o.value);
+                  setPrizeData(d => ({ ...d, assignedTo: vals }));
+                }}
+                size={Math.min(users.length + 1, 6)}
+              >
+                <option value="all">all</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </label>
+            <div>
+              <button onClick={addPrize}>Anlegen</button>
+            </div>
+          </div>
+        )}
+
+        {/* Prizes Table */}
+        <div className="admin-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Punkte</th>
+                <th>Zugeordnet an</th>
+                <th className="action-cell">Aktion</th>
+              </tr>
+            </thead>
+            <tbody>
+              {prizes.map(prize => editingPrizeId === prize.id
+                ? (
+                  <tr key={prize.id}>
+                    <td>
+                      <input
+                        value={prizeData.name}
+                        onChange={e => setPrizeData(d => ({ ...d, name: e.target.value }))}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        value={prizeData.cost}
+                        onChange={e => setPrizeData(d => ({ ...d, cost: Number(e.target.value) }))}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        multiple
+                        value={prizeData.assignedTo}
+                        onChange={e => {
+                          const vals = Array.from(e.target.selectedOptions, o => o.value);
+                          setPrizeData(d => ({ ...d, assignedTo: vals }));
+                        }}
+                        size={Math.min(users.length + 1, 6)}
+                      >
+                        <option value="all">all</option>
+                        {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                    </td>
+                    <td className="action-cell">
+                      <button className="icon-btn" onClick={savePrizeEdit} title="Speichern">✔</button>
+                      <button className="icon-btn" onClick={cancelPrizeEdit} title="Abbrechen">✖</button>
+                      <button className="icon-btn delete-btn" onClick={() => deletePrize(prize.id)} title="Löschen">🗑</button>
+                    </td>
+                  </tr>
+                )
+                : (
+                  <tr key={prize.id}>
+                    <td>{prize.name}</td>
+                    <td>{prize.cost}</td>
+                    <td>
+                      <div className="assignees-stack">
+                        {(prize.assignedTo.includes("all") ? users : users.filter(u => prize.assignedTo.includes(u.id)))
+                          .map((u, idx) => (
+                            <img
+                              key={u.id}
+                              src={`/profiles/${u.name.toLowerCase().replace(/\s+/g, "")}.jpg`}
+                              alt={u.name}
+                              className="assignee-avatar small"
+                              style={{ borderColor: assigneeColors[u.id] || "transparent", zIndex: users.length - idx }}
+                            />
+                          ))}
+                      </div>
+                    </td>
+                    <td className="action-cell">
+                      <button className="icon-btn" onClick={() => startPrizeEdit(prize)} title="Bearbeiten">⚙</button>
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

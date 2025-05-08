@@ -1,12 +1,14 @@
 /* src/components/RewardsList.css */
 
 .rewards-list {
-  padding: 0 16px 20px;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
+/* Überschrift bleibt statisch */
 .rewards-header {
+  flex: 0 0 auto;
   text-align: center;
   font-size: 1.2rem;
   font-weight: bold;
@@ -14,6 +16,13 @@
   color: var(--text);
 }
 
+.rewards-list-wrapper {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 16px; /* optional, verhindert horizontales Scrollen */
+}
+
+/* Einzelne Prämienkarte */
 .reward-card {
   border: 2px solid var(--accent);
   border-radius: var(--radius);
@@ -68,3 +77,62 @@
 .redeem-icon {
   font-size: 1.2rem;
 }
+/* src/components/RewardsList.css */
+
+/* äußere Box, füllt den verfügbaren Raum */
+.rewards-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 16px;
+}
+
+/* Überschrift bleibt oben */
+.rewards-header {
+  flex: 0 0 auto;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 16px 0;
+  color: var(--text);
+}
+
+/* Scrollbarer Bereich: nimmt den Rest ein */
+.rewards-list-wrapper {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  /* Puffer unten, damit letzte Karte nicht am Rand klebt */
+  padding-bottom: 20px;
+}
+
+/* Karte bleibt gleich wie gehabt */
+.reward-card {
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.reward-card.disabled { opacity: 0.5; }
+.reward-content { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.reward-name { font-weight: 600; font-size: 1rem; flex: 1; }
+.redeem-button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 1rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.redeem-button:disabled { background: #ccc; cursor: default; }
+.redeem-cost { margin-right: 6px; }
+.redeem-icon { font-size: 1.2rem; }
