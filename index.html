@@ -2,20 +2,90 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Viewport mit Safe-Area, kein Zoom bei Eingabe -->
+    <meta 
+      name="viewport" 
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" 
+    />
 
-    <!-- 🔧 iOS PWA Support -->
+    <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
+
+    <!-- iOS Home-Screen Icon & Fullscreen -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#a3702c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Haushaltsplan" />
 
+    <!-- 4) iOS Splash Screens -->
+    <!-- iPhone 16 Pro: 1206×2622px @3x → 402×874pt -->
+    <link
+      rel="apple-touch-startup-image"
+      href="/splash/iphone-16-pro.png"
+      media="(device-width: 402px) and (device-height: 874px)
+             and (-webkit-device-pixel-ratio: 3)
+             and (orientation: portrait)"
+    />
+
+    <!-- iPhone 15 Pro: 1179×2556px @3x → 393×852pt -->
+    <link
+      rel="apple-touch-startup-image"
+      href="/splash/iphone-15-pro.png"
+      media="(device-width: 393px) and (device-height: 852px)
+             and (-webkit-device-pixel-ratio: 3)
+             and (orientation: portrait)"
+    />
+
+    <!-- iPhone XR: 828×1792px @2x → 414×896pt -->
+    <link
+      rel="apple-touch-startup-image"
+      href="/splash/iphone-xr.png"
+      media="(device-width: 414px) and (device-height: 896px)
+             and (-webkit-device-pixel-ratio: 2)
+             and (orientation: portrait)"
+    />
+
+    <!-- Theme Color für Browser-UI -->
+    <meta name="theme-color" content="#a3702c" />
+
+    <!-- Dynamische --vh-Variable & Keyboard-Handling -->
+    <script>
+      const setVh = () => {
+        document.documentElement.style.setProperty(
+          '--vh',
+          `${window.innerHeight * 0.01}px`
+        );
+      };
+      window.addEventListener('resize', setVh);
+      window.addEventListener('focusin', setVh);
+      setVh();
+    </script>
+
+    <!-- iOS-Scroll & Touch-Feedback CSS -->
+    <style>
+      html, body {
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: auto;
+      }
+      * {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+      input, select, textarea, button {
+        font-size: 16px;
+      }
+    </style>
+
     <title>Haushaltsplan</title>
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="
+    margin: 0;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+    height: calc(var(--vh) * 100);
+    overflow: hidden;
+  ">
+    <div id="root" style="height: 100%;"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
