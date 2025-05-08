@@ -20,6 +20,7 @@
   flex-direction: column;
   position: relative;
   transition: opacity 0.3s ease;
+  margin-bottom: 4px;
 }
 
 .task-card.done,
@@ -150,4 +151,34 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.task-category {
+  margin-bottom: 5px; /* Abstand zwischen den Kategorien */
+}
+
+.category-header {
+  cursor: pointer;
+  font-weight: bold;
+  padding: 8px 16px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.category-header + .task-card {
+  margin-top: 4px; /* Abstand zwischen Kategorie-Header und erstem Task */
+}
+.task-list {
+  overflow-y: auto;       /* Stelle sicher, dass hier gescrollt wird */
+  max-height: 100%;       /* oder eine feste Höhe, je nach Layout */
+}
+
+.category-header {
+  position: sticky;
+  top: 0;                 /* klebt am oberen Rand des Scroll-Containers */
+  background: var(--card-bg);
+  z-index: 5;             /* muss über den Task-Cards liegen */
+  margin-bottom: 8px;     /* Abstand zur ersten Aufgabe */
 }

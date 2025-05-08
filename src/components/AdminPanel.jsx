@@ -13,6 +13,20 @@ import "./AdminPanel.css";
 import "./TaskList.css";
 import { assigneeColors } from "../utils/assigneeColors";
 
+const CATEGORY_OPTIONS = [
+  "Küche",
+  "Wohnzimmer",
+  "Wäsche",
+  "Badezimmer",
+  "Schlafzimmer",
+  "Kinderzimmer",
+  "Büro",
+  "Flur",
+  "Saugen",
+  "Wischen",
+  "Sonstiges"
+];
+
 export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin }) {
   // Tasks
   const [tasks, setTasks] = useState([]);
@@ -22,7 +36,8 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
     points: "",
     targetCount: "",
     repeatInterval: "",
-    assignedTo: ["all"]
+    assignedTo: ["all"],
+    category: "Unkategorisiert"
   });
   const [showTaskForm, setShowTaskForm] = useState(false);
 
@@ -36,7 +51,7 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
   });
   const [showPrizeForm, setShowPrizeForm] = useState(false);
 
-  // Load once
+  // Load initial data
   useEffect(() => {
     (async () => {
       const [tSnap, pSnap] = await Promise.all([
@@ -47,8 +62,22 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
       setPrizes(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     })();
   }, []);
+// Aufgaben sortieren wie in TaskList
+const CATEGORY_ORDER = [
+  "Küche", "Wohnzimmer", "Wäsche", "Badezimmer", "Schlafzimmer",
+  "Kinderzimmer", "Büro", "Flur", "Saugen", "Wischen", "Sonstiges"
+];
 
-  // --- Task handlers (unchanged) ---
+const categoryOrderIndex = cat => CATEGORY_ORDER.indexOf(cat || "Küche");
+
+const sortedTasks = [...tasks].sort((a, b) => {
+  const catA = categoryOrderIndex(a.category);
+  const catB = categoryOrderIndex(b.category);
+  if (catA !== catB) return catA - catB;
+  return a.name.localeCompare(b.name);
+});
+
+  // --- Task handlers ---
   const toggleTaskAssignee = id => {
     setTaskData(d => {
       let a = [...d.assignedTo];
@@ -62,6 +91,7 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
       return { ...d, assignedTo: a };
     });
   };
+
   const startTaskEdit = task => {
     setEditingTaskId(task.id);
     setTaskData({
@@ -69,62 +99,69 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
       points: task.points,
       targetCount: task.targetCount || "",
       repeatInterval: task.repeatInterval || "",
-      assignedTo: task.assignedTo || ["all"]
+      assignedTo: task.assignedTo || ["all"],
+      category: task.category || "Unkategorisiert"
     });
     setShowTaskForm(false);
     setShowPrizeForm(false);
   };
+
   const saveTaskEdit = async () => {
     await updateDoc(doc(db, "tasks", editingTaskId), {
       name: taskData.name,
       points: Number(taskData.points),
       targetCount: Number(taskData.targetCount),
       repeatInterval: Number(taskData.repeatInterval),
-      assignedTo: taskData.assignedTo
+      assignedTo: taskData.assignedTo,
+      category: taskData.category
     });
     setTasks(ts =>
       ts.map(t =>
         t.id === editingTaskId
-          ? {
-              ...t,
-              name: taskData.name,
-              points: Number(taskData.points),
-              targetCount: Number(taskData.targetCount),
-              repeatInterval: Number(taskData.repeatInterval),
-              assignedTo: taskData.assignedTo
-            }
+          ? { ...t, ...taskData, points: Number(taskData.points) }
           : t
       )
     );
     setEditingTaskId(null);
   };
+
   const cancelTaskEdit = () => setEditingTaskId(null);
+
   const deleteTask = async id => {
     if (!window.confirm("Task wirklich löschen?")) return;
     await deleteDoc(doc(db, "tasks", id));
     setTasks(ts => ts.filter(t => t.id !== id));
     setEditingTaskId(null);
   };
+
   const handleNewTaskSubmit = async e => {
     e.preventDefault();
-    await addDoc(collection(db, "tasks"), {
+    const newTask = {
       name: taskData.name,
       points: Number(taskData.points),
       targetCount: taskData.targetCount ? Number(taskData.targetCount) : null,
       repeatInterval: taskData.repeatInterval ? Number(taskData.repeatInterval) : null,
       assignedTo: taskData.assignedTo,
+      category: taskData.category,
       doneBy: "",
       completions: [],
       lastDoneAt: "",
       availableFrom: ""
+    };
+    const ref = await addDoc(collection(db, "tasks"), newTask);
+    setTasks(ts => [...ts, { id: ref.id, ...newTask }]);
+    setTaskData({
+      name: "",
+      points: "",
+      targetCount: "",
+      repeatInterval: "",
+      assignedTo: ["all"],
+      category: "Unkategorisiert"
     });
-    setTaskData({ name: "", points: "", targetCount: "", repeatInterval: "", assignedTo: ["all"] });
     setShowTaskForm(false);
-    const snap = await getDocs(collection(db, "tasks"));
-    setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
-  // --- Prize handlers (neu ergänzt) ---
+  // --- Prize handlers ---
   const togglePrizeAssignee = id => {
     setPrizeData(d => {
       let a = [...d.assignedTo];
@@ -138,6 +175,7 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
       return { ...d, assignedTo: a };
     });
   };
+
   const startPrizeEdit = prize => {
     setEditingPrizeId(prize.id);
     setPrizeData({
@@ -148,6 +186,7 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
     setShowPrizeForm(false);
     setShowTaskForm(false);
   };
+
   const savePrizeEdit = async () => {
     await updateDoc(doc(db, "rewards", editingPrizeId), {
       name: prizeData.name,
@@ -157,19 +196,22 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
     setPrizes(ps =>
       ps.map(p =>
         p.id === editingPrizeId
-          ? { ...p, name: prizeData.name, cost: Number(prizeData.cost), assignedTo: prizeData.assignedTo }
+          ? { ...p, ...prizeData, cost: Number(prizeData.cost) }
           : p
       )
     );
     setEditingPrizeId(null);
   };
+
   const cancelPrizeEdit = () => setEditingPrizeId(null);
+
   const deletePrize = async id => {
     if (!window.confirm("Prämie wirklich löschen?")) return;
     await deleteDoc(doc(db, "rewards", id));
     setPrizes(ps => ps.filter(p => p.id !== id));
     setEditingPrizeId(null);
   };
+
   const addPrize = async () => {
     if (!prizeData.name) return;
     const newPrize = {
@@ -190,7 +232,13 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
         <button onClick={onCloseAdmin}>Schließen</button>
         <button onClick={onReset}>Alle zurücksetzen</button>
         <button onClick={onResetPrizes}>Prämien zurücksetzen</button>
-        <button onClick={() => { setShowTaskForm(f => !f); setEditingTaskId(null); setShowPrizeForm(false); }}>
+        <button
+          onClick={() => {
+            setShowTaskForm(f => !f);
+            setEditingTaskId(null);
+            setShowPrizeForm(false);
+          }}
+        >
           {showTaskForm ? "Form schließen" : "Neue Aufgabe hinzufügen"}
         </button>
       </div>
@@ -199,16 +247,69 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
         {/* Neue Aufgabe */}
         {showTaskForm && (
           <form className="admin-form" onSubmit={handleNewTaskSubmit}>
-            <label>Aufgabenname<input type="text" value={taskData.name} onChange={e => setTaskData(d => ({ ...d, name: e.target.value }))} /></label>
-            <label>Punkte<input type="number" value={taskData.points} onChange={e => setTaskData(d => ({ ...d, points: e.target.value }))} /></label>
-            <label>Wie oft pro Tag<input type="number" value={taskData.targetCount} onChange={e => setTaskData(d => ({ ...d, targetCount: e.target.value }))} /></label>
-            <label>Intervall (Tage)<input type="number" value={taskData.repeatInterval} onChange={e => setTaskData(d => ({ ...d, repeatInterval: e.target.value }))} /></label>
+            <label>
+              Aufgabenname
+              <input
+                type="text"
+                value={taskData.name}
+                onChange={e => setTaskData(d => ({ ...d, name: e.target.value }))}
+              />
+            </label>
+            <label>
+              Punkte
+              <input
+                type="number"
+                value={taskData.points}
+                onChange={e => setTaskData(d => ({ ...d, points: e.target.value }))}
+              />
+            </label>
+            <label>
+              Wie oft pro Tag
+              <input
+                type="number"
+                value={taskData.targetCount}
+                onChange={e => setTaskData(d => ({ ...d, targetCount: e.target.value }))}
+              />
+            </label>
+            <label>
+              Intervall (Tage)
+              <input
+                type="number"
+                value={taskData.repeatInterval}
+                onChange={e => setTaskData(d => ({ ...d, repeatInterval: e.target.value }))}
+              />
+            </label>
+            <label>
+              Kategorie
+              <select
+                value={taskData.category}
+                onChange={e => setTaskData(d => ({ ...d, category: e.target.value }))}
+              >
+                {CATEGORY_OPTIONS.map(cat => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </label>
             <fieldset className="checkbox-group">
               <legend>Zugeordnet an</legend>
-              <label><input type="checkbox" checked={taskData.assignedTo.includes("all")} onChange={() => toggleTaskAssignee("all")} /> Alle</label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={taskData.assignedTo.includes("all")}
+                  onChange={() => toggleTaskAssignee("all")}
+                />{" "}
+                Alle
+              </label>
               {users.map(u => (
                 <label key={u.id}>
-                  <input type="checkbox" checked={taskData.assignedTo.includes(u.id)} onChange={() => toggleTaskAssignee(u.id)} /> {u.name}
+                  <input
+                    type="checkbox"
+                    checked={taskData.assignedTo.includes(u.id)}
+                    onChange={() => toggleTaskAssignee(u.id)}
+                  />{" "}
+                  {u.name}
                 </label>
               ))}
             </fieldset>
@@ -221,78 +322,190 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
           <div className="admin-table-wrapper">
             <table>
               <thead>
-                <tr><th>Name</th><th>Punkte</th><th>Pro Tag</th><th>Intervall</th><th>Zugeordnet an</th><th className="action-cell">Aktion</th></tr>
+                <tr>
+                  <th>Name</th>
+                  <th>Punkte</th>
+                  <th>Pro Tag</th>
+                  <th>Intervall</th>
+                  <th>Kategorie</th>
+                  <th>Zugeordnet an</th>
+                  <th className="action-cell">Aktion</th>
+                </tr>
               </thead>
-              <tbody>
-                {tasks.map(task =>
-                  editingTaskId === task.id ? (
-                    <React.Fragment key={task.id}>
-                      <tr>
-                        <td><label>Aufgabenname<input type="text" value={taskData.name} onChange={e => setTaskData(d => ({ ...d, name: e.target.value }))} /></label></td>
-                        <td><label>Punkte<input type="number" value={taskData.points} onChange={e => setTaskData(d => ({ ...d, points: e.target.value }))} /></label></td>
-                        <td><label>Pro Tag<input type="number" value={taskData.targetCount} onChange={e => setTaskData(d => ({ ...d, targetCount: e.target.value }))} /></label></td>
-                        <td><label>Intervall<input type="number" value={taskData.repeatInterval} onChange={e => setTaskData(d => ({ ...d, repeatInterval: e.target.value }))} /></label></td>
-                        <td></td>
-                        <td className="action-cell">
-                          <button className="icon-btn" onClick={saveTaskEdit} title="Speichern">✔</button>
-                          <button className="icon-btn" onClick={cancelTaskEdit} title="Abbrechen">✖</button>
-                          <button className="icon-btn delete-btn" onClick={() => deleteTask(task.id)} title="Löschen">🗑</button>
-                        </td>
-                      </tr>
-                      <tr><td colSpan={6}>
-                        <fieldset className="checkbox-group">
-                          <legend>Zugeordnet an</legend>
-                          <label><input type="checkbox" checked={taskData.assignedTo.includes("all")} onChange={() => toggleTaskAssignee("all")} /> Alle</label>
-                          {users.map(u => (
-                            <label key={u.id}>
-                              <input type="checkbox" checked={taskData.assignedTo.includes(u.id)} onChange={() => toggleTaskAssignee(u.id)} /> {u.name}
-                            </label>
-                          ))}
-                        </fieldset>
-                      </td></tr>
-                    </React.Fragment>
-                  ) : (
-                    <tr key={task.id}>
-                      <td>{task.name}</td>
-                      <td>{task.points}</td>
-                      <td>{task.targetCount || "-"}</td>
-                      <td>{task.repeatInterval || "-"}</td>
-                      <td>
-                        <div className="assignees-stack">
-                          {(task.assignedTo.includes("all") ? users : users.filter(u => task.assignedTo.includes(u.id))).map((u,idx)=>(
-                            <img key={u.id} src={`/profiles/${u.name.toLowerCase().replace(/\s+/g,"")}.jpg`}
-                              alt={u.name} className="assignee-avatar small"
-                              style={{borderColor: assigneeColors[u.id]||"transparent", zIndex: users.length-idx}} />
-                          ))}
-                        </div>
-                      </td>
-                      <td className="action-cell">
-                        <button className="icon-btn" onClick={() => startTaskEdit(task)} title="Bearbeiten">🔧</button>
-                      </td>
-                    </tr>
-                  )
-                )}
-              </tbody>
+<tbody>
+  {CATEGORY_ORDER.map(category => {
+    const tasksInCategory = sortedTasks.filter(t => (t.category || "Unkategorisiert") === category);
+    if (tasksInCategory.length === 0) return null;
+
+    return (
+      <React.Fragment key={category}>
+        <tr className="admin-category-header">
+          <th colSpan={7}>{category}</th>
+        </tr>
+        {tasksInCategory.map(task => {
+          if (editingTaskId === task.id) {
+            return (
+              <React.Fragment key={task.id}>
+                <tr>
+                  <td>
+                    <input
+                      type="text"
+                      value={taskData.name}
+                      onChange={e => setTaskData(d => ({ ...d, name: e.target.value }))}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      value={taskData.points}
+                      onChange={e => setTaskData(d => ({ ...d, points: e.target.value }))}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      value={taskData.targetCount}
+                      onChange={e => setTaskData(d => ({ ...d, targetCount: e.target.value }))}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      value={taskData.repeatInterval}
+                      onChange={e => setTaskData(d => ({ ...d, repeatInterval: e.target.value }))}
+                    />
+                  </td>
+                  <td>
+                    <select
+                      value={taskData.category}
+                      onChange={e => setTaskData(d => ({ ...d, category: e.target.value }))}
+                    >
+                      {CATEGORY_OPTIONS.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td></td>
+                  <td className="action-cell">
+                    <button onClick={saveTaskEdit}>✔</button>
+                    <button onClick={cancelTaskEdit}>✖</button>
+                    <button onClick={() => deleteTask(task.id)}>🗑</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td colSpan={7}>
+                    <fieldset className="checkbox-group">
+                      <legend>Zugeordnet an</legend>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={taskData.assignedTo.includes("all")}
+                          onChange={() => toggleTaskAssignee("all")}
+                        /> Alle
+                      </label>
+                      {users.map(u => (
+                        <label key={u.id}>
+                          <input
+                            type="checkbox"
+                            checked={taskData.assignedTo.includes(u.id)}
+                            onChange={() => toggleTaskAssignee(u.id)}
+                          /> {u.name}
+                        </label>
+                      ))}
+                    </fieldset>
+                  </td>
+                </tr>
+              </React.Fragment>
+            );
+          }
+
+          return (
+            <tr key={task.id}>
+              <td>{task.name}</td>
+              <td>{task.points}</td>
+              <td>{task.targetCount || "-"}</td>
+              <td>{task.repeatInterval || "-"}</td>
+              <td>{task.category || "Unkategorisiert"}</td>
+              <td>
+                <div className="assignees-stack">
+                  {(task.assignedTo.includes("all") ? users : users.filter(u => task.assignedTo.includes(u.id))).map((u, idx) => (
+                    <img
+                      key={u.id}
+                      src={`/profiles/${u.name.toLowerCase().replace(/\s+/g, "")}.jpg`}
+                      alt={u.name}
+                      className="assignee-avatar small"
+                      style={{
+                        borderColor: assigneeColors[u.id] || "transparent",
+                        zIndex: users.length - idx
+                      }}
+                    />
+                  ))}
+                </div>
+              </td>
+              <td className="action-cell">
+                <button onClick={() => startTaskEdit(task)}>🔧</button>
+              </td>
+            </tr>
+          );
+        })}
+      </React.Fragment>
+    );
+  })}
+</tbody>
+
+
             </table>
           </div>
         )}
 
-        {/* Prämien */}
+        {/* Prämien-Abschnitt */}
         <div className="admin-header">
-          <button onClick={() => { setShowPrizeForm(f => !f); setEditingPrizeId(null); setShowTaskForm(false); }}>
+          <button
+            onClick={() => {
+              setShowPrizeForm(f => !f);
+              setEditingPrizeId(null);
+              setShowTaskForm(false);
+            }}
+          >
             {showPrizeForm ? "Prämien-Form schließen" : "Neue Prämie hinzufügen"}
           </button>
         </div>
         {showPrizeForm && (
           <div className="admin-form">
-            <label>Prämienname<input type="text" value={prizeData.name} onChange={e => setPrizeData(d=>({...d,name:e.target.value}))} /></label>
-            <label>Kosten<input type="number" value={prizeData.cost} onChange={e => setPrizeData(d=>({...d,cost:e.target.value}))} /></label>
+            <label>
+              Prämienname
+              <input
+                type="text"
+                value={prizeData.name}
+                onChange={e => setPrizeData(d => ({ ...d, name: e.target.value }))}
+              />
+            </label>
+            <label>
+              Kosten
+              <input
+                type="number"
+                value={prizeData.cost}
+                onChange={e => setPrizeData(d => ({ ...d, cost: e.target.value }))}
+              />
+            </label>
             <fieldset className="checkbox-group">
               <legend>Zugeordnet an</legend>
-              <label><input type="checkbox" checked={prizeData.assignedTo.includes("all")} onChange={()=>togglePrizeAssignee("all")} /> Alle</label>
-              {users.map(u=>(
+              <label>
+                <input
+                  type="checkbox"
+                  checked={prizeData.assignedTo.includes("all")}
+                  onChange={() => togglePrizeAssignee("all")}
+                />{" "}
+                Alle
+              </label>
+              {users.map(u => (
                 <label key={u.id}>
-                  <input type="checkbox" checked={prizeData.assignedTo.includes(u.id)} onChange={()=>togglePrizeAssignee(u.id)} /> {u.name}
+                  <input
+                    type="checkbox"
+                    checked={prizeData.assignedTo.includes(u.id)}
+                    onChange={() => togglePrizeAssignee(u.id)}
+                  />{" "}
+                  {u.name}
                 </label>
               ))}
             </fieldset>
@@ -302,33 +515,64 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
         <div className="admin-table-wrapper">
           <table>
             <thead>
-              <tr><th>Name</th><th>Punkte</th><th>Zugeordnet an</th><th className="action-cell">Aktion</th></tr>
+              <tr>
+                <th>Name</th>
+                <th>Kosten</th>
+                <th>Zugeordnet an</th>
+                <th className="action-cell">Aktion</th>
+              </tr>
             </thead>
             <tbody>
               {prizes.map(prize =>
                 editingPrizeId === prize.id ? (
                   <React.Fragment key={prize.id}>
                     <tr>
-                      <td><input type="text" value={prizeData.name} onChange={e=>setPrizeData(d=>({...d,name:e.target.value}))} /></td>
-                      <td><input type="number" value={prizeData.cost} onChange={e=>setPrizeData(d=>({...d,cost:e.target.value}))} /></td>
+                      <td>
+                        <input
+                          type="text"
+                          value={prizeData.name}
+                          onChange={e => setPrizeData(d => ({ ...d, name: e.target.value }))}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          value={prizeData.cost}
+                          onChange={e => setPrizeData(d => ({ ...d, cost: e.target.value }))}
+                        />
+                      </td>
                       <td></td>
                       <td className="action-cell">
-                        <button className="icon-btn" onClick={savePrizeEdit} title="Speichern">✔</button>
-                        <button className="icon-btn" onClick={cancelPrizeEdit} title="Abbrechen">✖</button>
-                        <button className="icon-btn delete-btn" onClick={() => deletePrize(prize.id)} title="Löschen">🗑</button>
+                        <button onClick={savePrizeEdit} title="Speichern">✔</button>
+                        <button onClick={cancelPrizeEdit} title="Abbrechen">✖</button>
+                        <button onClick={() => deletePrize(prize.id)} title="Löschen">🗑</button>
                       </td>
                     </tr>
-                    <tr><td colSpan={4}>
-                      <fieldset className="checkbox-group">
-                        <legend>Zugeordnet an</legend>
-                        <label><input type="checkbox" checked={prizeData.assignedTo.includes("all")} onChange={()=>togglePrizeAssignee("all")} /> Alle</label>
-                        {users.map(u=>(
-                          <label key={u.id}>
-                            <input type="checkbox" checked={prizeData.assignedTo.includes(u.id)} onChange={()=>togglePrizeAssignee(u.id)} /> {u.name}
+                    <tr>
+                      <td colSpan={4}>
+                        <fieldset className="checkbox-group">
+                          <legend>Zugeordnet an</legend>
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={prizeData.assignedTo.includes("all")}
+                              onChange={() => togglePrizeAssignee("all")}
+                            />{" "}
+                            Alle
                           </label>
-                        ))}
-                      </fieldset>
-                    </td></tr>
+                          {users.map(u => (
+                            <label key={u.id}>
+                              <input
+                                type="checkbox"
+                                checked={prizeData.assignedTo.includes(u.id)}
+                                onChange={() => togglePrizeAssignee(u.id)}
+                              />{" "}
+                              {u.name}
+                            </label>
+                          ))}
+                        </fieldset>
+                      </td>
+                    </tr>
                   </React.Fragment>
                 ) : (
                   <tr key={prize.id}>
@@ -336,15 +580,22 @@ export default function AdminPanel({ users, onReset, onResetPrizes, onCloseAdmin
                     <td>{prize.cost}</td>
                     <td>
                       <div className="assignees-stack">
-                        {(prize.assignedTo.includes("all") ? users : users.filter(u=>prize.assignedTo.includes(u.id))).map((u,idx)=>(
-                          <img key={u.id} src={`/profiles/${u.name.toLowerCase().replace(/\s+/g,"")}.jpg`}
-                            alt={u.name} className="assignee-avatar small"
-                            style={{borderColor:assigneeColors[u.id]||"transparent",zIndex:users.length-idx}} />
+                        {(prize.assignedTo.includes("all") ? users : users.filter(u => prize.assignedTo.includes(u.id))).map((u, idx) => (
+                          <img
+                            key={u.id}
+                            src={`/profiles/${u.name.toLowerCase().replace(/\s+/g, "")}.jpg`}
+                            alt={u.name}
+                            className="assignee-avatar small"
+                            style={{
+                              borderColor: assigneeColors[u.id] || "transparent",
+                              zIndex: users.length - idx
+                            }}
+                          />
                         ))}
                       </div>
                     </td>
                     <td className="action-cell">
-                      <button className="icon-btn" onClick={()=>startPrizeEdit(prize)} title="Bearbeiten">🔧</button>
+                      <button onClick={() => startPrizeEdit(prize)} title="Bearbeiten">🔧</button>
                     </td>
                   </tr>
                 )

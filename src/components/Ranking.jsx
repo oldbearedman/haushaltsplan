@@ -15,6 +15,11 @@ export default function Ranking({ users }) {
         {sorted.map((u, idx) => {
           // Level und Level-Name aus XP berechnen
           const { level, levelName } = useLevel(u.xp || 0);
+
+         // Stern-Index: ein Stern pro 2 Level, maximal 37
+         // (gleiche Logik wie in Stats.jsx) :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
+         const starIndex = Math.min(Math.ceil(level / 2), 37);
+
           // User-Farbe aus assigneeColors (fallback auf #444)
           const userColor = assigneeColors[u.id] || "#444";
           // Rahmenfarbe je Platz
@@ -46,6 +51,18 @@ export default function Ranking({ users }) {
                   style={{ color: userColor }}
                 >
                   {u.name}
+                                   {/* Stern hinter dem Namen */}
+                 <img
+                   src={`/icons/star${starIndex}.webp`}
+                   alt={`Stern ${starIndex}`}
+                   style={{
+                     width: "9px",
+                     height: "9px",
+                     marginLeft: "3px",
+                     position: "relative",
+                     top: "-5px"
+                   }}
+                 />
                 </span>
                 {/* Level darunter */}
                 <span className="ranking-level">Level {level}</span>

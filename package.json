@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && workbox generateSW workbox-config.cjs",
+    "build": "vite build && workbox injectManifest workbox-config.cjs",
     "preview": "vite preview",
     "lint": "eslint ."
   },
   "dependencies": {
     "canvas-confetti": "^1.9.3",
     "firebase": "^11.6.1",
+    "idb-keyval": "^6.2.2",
     "react": "^19.0.0",
     "react-confetti": "^6.4.0",
     "react-dom": "^19.0.0",
@@ -20,14 +21,15 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
-    "@types-react": "^19.0.10",
-    "@types-react-dom": "^19.0.4",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^9.22.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
     "vite": "^6.3.1",
+    "workbox-background-sync": "^7.0.0",
     "workbox-cli": "^7.3.0"
   }
 }

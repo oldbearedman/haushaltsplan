@@ -1,48 +1,71 @@
 // src/hooks/useTasks.js
 import { useState, useEffect } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, updateDoc, doc } from "firebase/firestore";
 import { db as firestoreDb } from "../firebase";
-import { dbPromise, idbGetAll, idbPut } from "../db";
+import { idbPut } from "../db";
+
+const daysSince = isoDateStr => {
+  if (!isoDateStr) return Infinity;
+  const past = new Date(isoDateStr);
+  return Math.floor((Date.now() - past) / (1000 * 60 * 60 * 24));
+};
 
 export default function useTasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const runResets = async fresh => {
+    await Promise.all(
+      fresh.map(async t => {
+        const ri = t.repeatInterval;
+        if (!ri) return;
 
-    // 1) Lokale DB: Sofort Tasks laden (falls vorhanden)
-    idbGetAll("tasks")
-      .then(localTasks => {
-        if (!isMounted) return;
-        if (localTasks.length > 0) {
-          setTasks(localTasks);
-          setLoading(false);
+        const completions = Array.isArray(t.completions) ? t.completions : [];
+        const lastDate = t.targetCount > 1
+          ? (completions.map(c => c.date).sort().pop() || "")
+          : t.lastDoneAt || "";
+
+        if (!lastDate) return;
+
+        const passed = daysSince(lastDate);
+        console.log(`[DEBUG] Task ${t.id} ri=${ri} last=${lastDate} passed=${passed}`);
+        if (passed >= ri) {
+          console.log(`[DEBUG] → Resetting ${t.id}`);
+
+          t.lastDoneAt = "";
+          if (t.targetCount > 1) t.completions = [];
+          else t.doneBy = "";
+
+          const updates = { lastDoneAt: "" };
+          if (t.targetCount > 1) updates.completions = [];
+          else updates.doneBy = "";
+
+          try {
+            await updateDoc(doc(firestoreDb, "tasks", t.id), updates);
+          } catch (e) {
+            console.warn(`Firestore reset error ${t.id}:`, e);
+          }
         }
       })
-      .catch(err => {
-        console.warn("IndexedDB read error:", err);
-      });
+    );
+  };
 
-    // 2) Firestore: Echtzeit-Subscription
+  useEffect(() => {
+    let isMounted = true;
     const unsubscribe = onSnapshot(
       collection(firestoreDb, "tasks"),
       async snapshot => {
         if (!isMounted) return;
-        const fresh = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        setLoading(true);
+
+        let fresh = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        await runResets(fresh);
+
         setTasks(fresh);
         setLoading(false);
 
-        // 3) In IndexedDB speichern
-        try {
-          const db = await dbPromise;
-          const tx = db.transaction("tasks", "readwrite");
-          fresh.forEach(task => tx.store.put(task));
-          await tx.done;
-        } catch (err) {
-          console.warn("IndexedDB write error:", err);
-        }
+        fresh.forEach(task => idbPut("tasks", task));
       },
       err => {
         if (!isMounted) return;
@@ -51,11 +74,31 @@ export default function useTasks() {
         setLoading(false);
       }
     );
-
     return () => {
       isMounted = false;
       unsubscribe();
     };
+  }, []);
+
+  useEffect(() => {
+    const now = new Date();
+    const nextMidnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+      0, 0, 0
+    );
+    const msUntilMidnight = nextMidnight - now;
+
+    const timer = setTimeout(async () => {
+      console.log("[DEBUG] 00:00 Reset Trigger");
+      const snap = await getDocs(collection(firestoreDb, "tasks"));
+      const fresh = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      await runResets(fresh);
+      setTasks(fresh);
+    }, msUntilMidnight + 1000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   return { tasks, loading, error };

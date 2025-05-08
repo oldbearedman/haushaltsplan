@@ -304,33 +304,6 @@ button:hover {
   100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
 }
 
-/* 13. Profil- und Admin-Styles */
-.profile-image,
-.assignee-image {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid var(--accent);
-  box-shadow: var(--shadow);
-}
-.name-select {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 20px 0;
-  gap: 16px;
-  background: transparent !important;
-}
-.profile-button {
-  background: transparent !important;
-}
-.profile-name {
-  color: #000 !important;
-  background: transparent !important;
-}
-
 /* 14. Admin-Panel */
 .admin-panel {
   background: var(--card-bg);
@@ -460,4 +433,19 @@ button:hover {
   border-radius: 4px;
   padding: 4px 8px;
   cursor: pointer;
+}
+/* am Ende von App.css (oder Header.css) */
+
+.back-button,
+.menu-button {
+  /* Stelle sicher, dass sie durch unsere globalen Hover/Active-Regeln NICHT verändert werden */
+  transition: none !important;
+}
+
+.back-button:hover,
+.back-button:active,
+.menu-button:hover,
+.menu-button:active {
+  transform: translateY(-50%) !important; /* immer in der Ausgangsposition */
+  box-shadow: none !important;
 }
