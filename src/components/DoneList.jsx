@@ -139,7 +139,7 @@ export default function DoneList({
               Eingelöst von {p.redeemedBy} am {formatTimestamp(p.redeemedAt)}
             </div>
           </div>
-          <div style={{ fontSize: "1.2rem", marginRight: 8 }}>⭐️⭐️⭐️</div>
+          <div style={{ fontSize: "1.2rem", marginRight: 8 }}>⭐️⭐️</div>
           {isOwn && (
             <button className="done-button grey" disabled>
               🎉

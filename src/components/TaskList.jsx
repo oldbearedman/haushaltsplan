@@ -15,10 +15,22 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
     const isLocked =
       (task.availableFrom && task.availableFrom > today) ||
       (assigneeId !== "all" && assigneeId !== currentUserId);
+
+    // Einzel- vs. Mehrfach-Aufgabe erkannt
+    const completions = Array.isArray(task.completions) ? task.completions : [];
+    const isMulti    = !!task.targetCount;
+    const doneMulti  = isMulti && completions.length >= task.targetCount;
+    const doneSingle = !!task.doneBy;
+
     const enriched = { ...task, assigneeId };
-    if (task.doneBy) doneTasks.push(enriched);
-    else if (isLocked) locked.push(enriched);
-    else available.push(enriched);
+
+    if (doneSingle || doneMulti) {
+      doneTasks.push(enriched);
+    } else if (isLocked) {
+      locked.push(enriched);
+    } else {
+      available.push(enriched);
+    }
   });
 
   const renderAssignee = assigneeId => {
@@ -56,7 +68,7 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
     const { assigneeId } = task;
     const color = assigneeColors[assigneeId] || "transparent";
 
-    // Label-Logik bleibt unverändert
+    // Label
     let label;
     if (status === "done") {
       label = task.availableFrom
@@ -80,9 +92,11 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
         ? "🔄"
         : <span style={{ color: "#222" }}>🔒</span>;
 
-    // Hier zählen wir **alle** Completions heute:
+    // Fortschritts-Berechnung pro User
     const completions = Array.isArray(task.completions) ? task.completions : [];
-    const doneToday = completions.filter(c => c.date === today).length;
+    const doneToday = completions.filter(
+      c => c.date === today
+    ).length;
 
     return (
       <div
@@ -94,7 +108,7 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
           {renderAssignee(assigneeId)}
         </div>
 
-        {/* Dot-Progress basierend auf allen Completions */}
+        {/* Nur bei Mehrfach-Aufgaben: Fortschritts-Punkte */}
         {task.targetCount > 1 && (
           <div className="dot-progress">
             {Array.from({ length: task.targetCount }).map((_, i) => (
@@ -124,8 +138,8 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
   return (
     <div className="task-list">
       {available.map(t => renderTask(t, "available"))}
-      {locked.map(t => renderTask(t, "locked"))}
-      {doneTasks.map(t => renderTask(t, "done"))}
+      {locked   .map(t => renderTask(t, "locked"   ))}
+      {doneTasks.map(t => renderTask(t, "done"     ))}
     </div>
   );
 }

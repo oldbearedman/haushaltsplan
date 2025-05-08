@@ -19,6 +19,13 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  transition: opacity 0.3s ease;
+}
+
+/* Sobald eine Aufgabe „done“ ist, wird sie ausgegraut */
+.task-card.done {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .task-content {
@@ -65,7 +72,7 @@
   font-size: 0.85rem;
   font-weight: bold;
   cursor: pointer;
-  background: var(--accent); /* Türkisgrün statt Rot */
+  background: var(--accent);
   color: white;
   transition: background 0.2s;
 }
@@ -97,11 +104,7 @@
   color: #888;
 }
 
-.task-card.done .done-button {
-  background: #ffcc00;
-  color: #fff;
-}
-/* ausgegraute Tasks */
+/* deaktivierte Tasks (optional, wenn du .disabled nutzt) */
 .task-card.disabled {
   opacity: 0.5;
   pointer-events: none;
@@ -114,6 +117,7 @@
   flex: 1;
   min-width: 0;
 }
+
 .task-label-top {
   position: absolute;
   top: 8px;
@@ -129,6 +133,8 @@
   max-width: 50%;
   text-align: right;
 }
+
+/* Fortschritts-Dots bei Mehrfach-Aufgaben */
 .dot-progress {
   position: absolute;
   top: 6px;
