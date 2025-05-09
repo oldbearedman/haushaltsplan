@@ -182,3 +182,9 @@
   z-index: 5;             /* muss über den Task-Cards liegen */
   margin-bottom: 8px;     /* Abstand zur ersten Aufgabe */
 }
+.task-card.done {
+  opacity: 0.6;
+  pointer-events: none;
+  filter: grayscale(0.6);
+  background: #f2f2f2;
+}

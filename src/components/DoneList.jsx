@@ -63,13 +63,12 @@ export default function DoneList({
     );
   };
 
-  const renderCompletion = (list, allowUndo) =>
+  const renderCompletion = list =>
     list.map((c, i) => {
       const user = users.find(u => u.id === c.userId);
+      const isOwn = c.userId === currentUserId;
       const color = assigneeColors[c.userId] || "transparent";
       const task = tasks.find(t => t.id === c.taskId);
-      const isOwn = c.userId === currentUserId;
-      const canUndo = allowUndo && isOwn;
 
       return (
         <div
@@ -99,7 +98,7 @@ export default function DoneList({
               {c.date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$3.$2")}
             </div>
           </div>
-          {canUndo ? (
+          {isOwn ? (
             <button
               className="done-button red"
               onClick={() => onUndo(task, "remove", c)}
@@ -170,13 +169,13 @@ export default function DoneList({
       {todayCompletions.length > 0 && (
         <>
           <div className="section-title">Heute erledigt</div>
-          {renderCompletion(todayCompletions, true)}
+          {renderCompletion(todayCompletions)}
         </>
       )}
       {olderCompletions.length > 0 && (
         <>
           <div className="section-title">Früher erledigt</div>
-          {renderCompletion(olderCompletions, false)}
+          {renderCompletion(olderCompletions)}
         </>
       )}
     </div>

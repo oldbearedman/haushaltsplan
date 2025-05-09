@@ -11,4 +11,4 @@ createRoot(document.getElementById('root')).render(
 )
 
 // Service Worker für PWA aktivieren
-// serviceWorkerRegistration.register()
+serviceWorkerRegistration.register()
