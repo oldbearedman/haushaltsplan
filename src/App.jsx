@@ -359,16 +359,21 @@ useEffect(() => {
         onOpenAdmin={openAdminPin}
       />
 
-      {selectedUser && (
-        <Stats
-          level={level}
-          levelName={levelName}
-          xpProgress={xpProgress}
-          xpToNext={xpToNext}
-          points={points}
-          onRedeemTab={() => setView("rewards")}
-        />
-      )}
+{selectedUser && (
+  <>
+    <div className="fixed-stats-wrapper">
+      <Stats
+        level={level}
+        levelName={levelName}
+        xpProgress={xpProgress}
+        xpToNext={xpToNext}
+        points={points}
+        onRedeemTab={() => setView("rewards")}
+      />
+    </div>
+    <div className="fixed-stats-spacer" />
+  </>
+)}
 
       {selectedUser && !adminMode && (
         <TabBar view={view} setView={setView} />
