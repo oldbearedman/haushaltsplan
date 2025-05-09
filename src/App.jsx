@@ -330,7 +330,6 @@ useEffect(() => {
 
   return (
     <div className="app-wrapper">
-      <NetworkIndicator />
       {/* Update-Banner bei neuer SW */}
     {showUpdateBanner && (
       <div className="update-banner">
