@@ -1,19 +1,23 @@
-import React from "react";
-
 export default function Header({ selectedUser, onBack, onOpenAdmin }) {
   return (
     <header>
-      {selectedUser && (
-        <button className="back-button" onClick={onBack}>
-          ←
-        </button>
-      )}
+      <button
+        className="back-button"
+        onClick={onBack}
+        style={{ visibility: selectedUser ? "visible" : "hidden" }}
+      >
+        ←
+      </button>
+
       <h1>Haushaltsplan</h1>
-      {selectedUser && (
-        <button className="menu-button" onClick={onOpenAdmin}>
-          ☰
-        </button>
-      )}
+
+      <button
+        className="menu-button"
+        onClick={onOpenAdmin}
+        style={{ visibility: selectedUser ? "visible" : "hidden" }}
+      >
+        ☰
+      </button>
     </header>
   );
 }
