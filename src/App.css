@@ -459,6 +459,8 @@ header {
 
 .app-wrapper {
   padding-top: 60px; /* Höhe des Headers ausgleichen */
+
+
 }
 .fixed-stats-wrapper {
   position: fixed;
@@ -472,4 +474,19 @@ header {
 
 .fixed-stats-spacer {
   height: 110px; /* Platzhalter, ca. Höhe von Stats */
+}
+
+
+.fixed-tabbar-wrapper {
+  position: fixed;
+  top: 170px; /* 60px Header + ~110px Stats */
+  left: 0;
+  right: 0;
+  z-index: 98;
+  padding: 0 16px;
+  background: var(--background);
+}
+
+.fixed-tabbar-spacer {
+  height: 60px; /* Platzhalter für die Höhe der Tabbar */
 }

@@ -375,9 +375,14 @@ useEffect(() => {
   </>
 )}
 
-      {selectedUser && !adminMode && (
-        <TabBar view={view} setView={setView} />
-      )}
+{selectedUser && !adminMode && (
+  <>
+    <div className="fixed-tabbar-wrapper">
+      <TabBar view={view} setView={setView} />
+    </div>
+    <div className="fixed-tabbar-spacer" />
+  </>
+)}
 
       <main className="content">
         {!selectedUser ? (
