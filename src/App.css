@@ -183,7 +183,7 @@ header h1 {
 .content {
   flex: 1;
   overflow-y: auto;
-  padding-top: 240px;
+  padding-top: 120px;
   min-height: 0;
 }
 
