@@ -457,7 +457,7 @@ header {
 }
 
 .app-wrapper {
-  padding-top: 60px; /* Höhe des Headers ausgleichen */
+  padding-top: 40px; /* Höhe des Headers ausgleichen */
 
 
 }
@@ -472,7 +472,7 @@ header {
 }
 
 .fixed-stats-spacer {
-  height: 110px; /* Platzhalter, ca. Höhe von Stats */
+  height: 90px; /* Platzhalter, ca. Höhe von Stats */
 }
 
 
