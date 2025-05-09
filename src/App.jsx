@@ -45,7 +45,6 @@ export default function App() {
   const [pinMode, setPinMode] = useState("");
   const [loginPendingUser, setLoginPendingUser] = useState(null);
   const [lastResetTime, setLastResetTime] = useState(null);
-  
 
   
 
@@ -359,30 +358,20 @@ useEffect(() => {
         onOpenAdmin={openAdminPin}
       />
 
-{selectedUser && (
-  <>
-    <div className="fixed-stats-wrapper">
-      <Stats
-        level={level}
-        levelName={levelName}
-        xpProgress={xpProgress}
-        xpToNext={xpToNext}
-        points={points}
-        onRedeemTab={() => setView("rewards")}
-      />
-    </div>
-    <div className="fixed-stats-spacer" />
-  </>
-)}
+      {selectedUser && (
+        <Stats
+          level={level}
+          levelName={levelName}
+          xpProgress={xpProgress}
+          xpToNext={xpToNext}
+          points={points}
+          onRedeemTab={() => setView("rewards")}
+        />
+      )}
 
-{selectedUser && !adminMode && (
-  <>
-    <div className="fixed-tabbar-wrapper">
-      <TabBar view={view} setView={setView} />
-    </div>
-    <div className="fixed-tabbar-spacer" />
-  </>
-)}
+      {selectedUser && !adminMode && (
+        <TabBar view={view} setView={setView} />
+      )}
 
       <main className="content">
         {!selectedUser ? (

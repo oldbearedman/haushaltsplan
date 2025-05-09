@@ -178,10 +178,3 @@
   height: 1rem;
   accent-color: #4caf50;
 }
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;  /* Scrollen ermöglichen */
-  min-height: 0;     /* verhindert, dass flex-Children zu groß werden */
-}
