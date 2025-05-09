@@ -449,3 +449,14 @@ button:hover {
   transform: translateY(-50%) !important; /* immer in der Ausgangsposition */
   box-shadow: none !important;
 }
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.app-wrapper {
+  padding-top: 60px; /* Höhe des Headers ausgleichen */
+}
