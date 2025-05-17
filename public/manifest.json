@@ -1,9 +1,10 @@
 {
-  "name": "Haushaltsplan",
+  "name": "Familien Haushaltsplan",
   "short_name": "HausApp",
-  "start_url": "/",
+  "scope": "/",
+  "start_url": "/?homescreen=1",
   "display": "standalone",
-  "background_color": "#f5f0e6",
+  "background_color": "#F0F8FF",
   "theme_color": "#a3702c",
   "orientation": "portrait",
   "icons": [
@@ -17,5 +18,7 @@
       "type": "image/png",
       "sizes": "512x512"
     }
-  ]
+  ],
+  "categories": ["productivity", "utilities"],
+  "prefer_related_applications": false
 }

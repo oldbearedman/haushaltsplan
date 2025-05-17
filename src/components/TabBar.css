@@ -1,39 +1,52 @@
 /* src/components/TabBar.css */
+
 .tab-bar {
   display: flex;
-  justify-content: center;
-  gap: 8px;
-  background: var(--card-bg);
-  box-shadow: var(--shadow);
-  padding: 8px 0;
-  border-radius: var(--radius);
-  margin: 8px 16px 0;
-  z-index: 9;
+  justify-content: space-around;
+  padding: 4px;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(10px);
+  border-radius: 32px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .tab-button {
-  flex: 1;
-  margin: 0;
-  text-align: center;
-  padding: 4px 0px;      /* oben/unten 8px, links/rechts 6px */
-  background: none;
-  border: none;
-  font-weight: bold;
-  font-size: 0.95rem;
+  position: relative;
+  padding: 8px 20px;
+  font-size: 1rem;
+  font-weight: 600;
   color: var(--text-muted);
-  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  border-radius: 24px;
   cursor: pointer;
-  border-radius: 8px;     /* etwas abgerundet */
+  transition: color 0.3s ease;
+}
+
+.tab-button:hover {
+  color: var(--text);
 }
 
 .tab-button.active {
-  color: var(--primary);
-  background: var(--primary-light);
+  color: white;
 }
-/* src/components/TabBar.css */
-.tab-button {
-  flex: none;
-  margin: 0 4px;          /* Abstand zwischen den Buttons */
-  padding: 6px 8px;
-  min-width: 120px;        /* fixe Mindestbreite */
+
+.tab-button.active::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-radius: 24px;
+  z-index: -1;
+  transition: all 0.4s ease;
+}
+
+/* sanftes Unterlegen: beim Wechsel wird der Gradient-Pill animiert */
+.tab-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border-radius: 24px;
+  transition: all 0.4s ease;
 }

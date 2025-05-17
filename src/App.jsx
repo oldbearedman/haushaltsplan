@@ -25,9 +25,16 @@ import RewardsList from "./components/RewardsList";
 import AdminPanel from "./components/AdminPanel";
 import PinModal from "./components/PinModal";
 import Ranking from "./components/Ranking";
+import NetworkIndicator from "./components/NetworkIndicator";
 
 export default function App() {
+  // 1. Banner-State
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+
+  // 2. Dein User-State
   const [selectedUser, setSelectedUser] = useState(null);
+
+  // Weiterer State
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [showRedeemSuccess, setShowRedeemSuccess] = useState(false);
   const [redeemedPrizes, setRedeemedPrizes] = useState([]);
@@ -37,8 +44,14 @@ export default function App() {
   const [pinInput, setPinInput] = useState("");
   const [pinMode, setPinMode] = useState("");
   const [loginPendingUser, setLoginPendingUser] = useState(null);
+  const [lastResetTime, setLastResetTime] = useState(null);
 
+  
+
+  // Punkte/XP
   const [points, setPoints] = useState(0);
+
+  // Hooks & Refs
   const users = useUsers();
   const { tasks, loading, error } = useTasks();
   const { rewards } = useRewards();
@@ -51,6 +64,25 @@ export default function App() {
     setXp
   } = useLevel(0);
   const prevLevelRef = useRef(level);
+
+  // Service-Worker–Update-Listener
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.addEventListener("updatefound", () => {
+          const newSW = registration.installing;
+          newSW.addEventListener("statechange", () => {
+            if (
+              newSW.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
+              setShowUpdateBanner(true);
+            }
+          });
+        });
+      });
+    }
+  }, []);
 
   // Punkte/XP laden bei User-Wechsel
   useEffect(() => {
@@ -76,31 +108,69 @@ export default function App() {
     }
     prevLevelRef.current = level;
   }, [level]);
+  useEffect(() => {
+  const today = new Date().toISOString().slice(0, 10);
+  const lastReset = localStorage.getItem("lastResetDate");
 
-  // Admin: Tasks & Users zurücksetzen
+  if (lastReset !== today) {
+    (async () => {
+      console.log("[DEBUG] → Nachträglicher Tagesreset");
+      const snap = await getDocs(collection(db, "tasks"));
+      const fresh = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      for (const task of fresh) {
+        const ri = task.repeatInterval;
+        if (!ri) continue;
+
+        const completions = Array.isArray(task.completions) ? task.completions : [];
+        const lastDate = task.targetCount > 1
+          ? (completions.map(c => c.date).sort().pop() || "")
+          : task.lastDoneAt || "";
+
+        if (!lastDate) continue;
+        const passed = Math.floor((Date.now() - new Date(lastDate)) / (1000 * 60 * 60 * 24));
+        if (passed >= ri) {
+          const updates = { lastDoneAt: "" };
+          if (task.targetCount > 1) updates.completions = [];
+          else updates.doneBy = "";
+
+          try {
+            await updateDoc(doc(db, "tasks", task.id), updates);
+          } catch (e) {
+            console.warn("Reset-Fehler bei", task.id, e);
+          }
+        }
+      }
+
+      localStorage.setItem("lastResetDate", today);
+      localStorage.setItem("lastResetTime", Date.now());
+      window.location.reload(); // UI aktualisieren
+    })();
+  }
+}, []);
+useEffect(() => {
+  const storedTime = localStorage.getItem("lastResetTime");
+  if (storedTime) setLastResetTime(parseInt(storedTime));
+}, []);
+
+
+
+// Admin: Nur Tasks zurücksetzen (XP/Points der User bleiben erhalten)
   const handleResetAll = async () => {
-    if (!window.confirm("Alles zurücksetzen?")) return;
-    const [tSnap, uSnap] = await Promise.all([
-      getDocs(collection(db, "tasks")),
-      getDocs(collection(db, "users"))
-    ]);
+    if (!window.confirm("Alle Aufgaben zurücksetzen?")) return;
+    const tSnap = await getDocs(collection(db, "tasks"));
     await Promise.all(
       tSnap.docs.map(d =>
         updateDoc(doc(db, "tasks", d.id), {
           doneBy: "",
-          count: 0,
-          availableFrom: "",
-          lastResetDate: "",
-          userProgress: {},
-          completions: []
+          completions: [],
+          // je nach Schema ggf. auch:
+          lastDoneAt: "",
+          availableFrom: ""
         })
       )
     );
-    await Promise.all(
-      uSnap.docs.map(d =>
-        updateDoc(doc(db, "users", d.id), { points: 0, xp: 0 })
-      )
-    );
+    // Seite neu laden, damit UI sich aktualisiert
     window.location.reload();
   };
 
@@ -144,26 +214,15 @@ export default function App() {
       if (mode === "remove") {
         await updateDoc(tRef, { doneBy: "", doneById: "", lastDoneAt: "" });
         delta = -pts;
-} else if (!task.doneBy) {
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
-
-  const update = {
-    doneBy: selectedUser.name,
-    doneById: selectedUser.id,
-    lastDoneAt: todayStr
-  };
-
-  if (task.repeatInterval && task.repeatInterval > 0) {
-    const next = new Date(today);
-    next.setDate(next.getDate() + task.repeatInterval);
-    update.availableFrom = next.toISOString().slice(0, 10);
-  }
-
-  await updateDoc(tRef, update);
-  delta = pts;
-}
-
+      } else if (!task.doneBy) {
+        await updateDoc(tRef, {
+          doneBy: selectedUser.name,
+          doneById: selectedUser.id,
+          lastDoneAt: new Date().toISOString().slice(0, 10)
+        });
+        delta = pts;
+      }
+    }
 
     if (delta !== 0) {
       await updateDoc(uRef, {
@@ -200,35 +259,50 @@ export default function App() {
     ]);
   };
 
-  // Pin-Eingabe-Handler für Admin und Login
-  const handlePinInput = digit => {
-    const next = pinInput + digit;
-    setPinInput(next);
-    if (next.length === 4) {
-      if (pinMode === "admin") {
-        if (next === "9627") setAdminMode(true);
-        else alert("Falscher PIN!");
-      } else if (pinMode === "login" && loginPendingUser) {
-        const name = loginPendingUser.name.toLowerCase();
-        const expected = name.includes("taylor")
-          ? "1507"
-          : name.includes("olivia")
-          ? "1212"
-          : name.includes("brandon")
-          ? "9627"
-          : null;
-        if (expected === next) {
-          setSelectedUser(loginPendingUser);
-        } else {
-          alert("Falscher PIN!");
-        }
-      }
-      setPinOpen(false);
-      setPinInput("");
-      setPinMode("");
-      setLoginPendingUser(null);
+ const handlePinInput = (digit) => {
+   if (digit === null) {
+     // Backspace
+     setPinInput((prev) => prev.slice(0, -1));
+     return;
+   }
+   // Neue Ziffer, zuschneiden auf 4 Stellen
+   setPinInput((prev) => (prev + digit).slice(0, 4));
+ };
+useEffect(() => {
+  if (pinInput.length !== 4) return;
+
+  // Wenn wir hier sind, ist pinInput genau 4 Zeichen lang
+  if (pinMode === "admin") {
+    if (pinInput === "9627") {
+      setAdminMode(true);
+    } else {
+      alert("Falscher PIN!");
     }
-  };
+  } else if (pinMode === "login" && loginPendingUser) {
+    const lname = loginPendingUser.name.toLowerCase();
+    const expected =
+      lname.includes("taylor")
+        ? "1507"
+        : lname.includes("olivia")
+        ? "1212"
+        : lname.includes("brandon")
+        ? "9627"
+        : null;
+
+    if (pinInput === expected) {
+      setSelectedUser(loginPendingUser);
+    } else {
+      alert("Falscher PIN!");
+    }
+  }
+
+  // Aufräumen
+  setPinOpen(false);
+  setPinInput("");
+  setPinMode("");
+  setLoginPendingUser(null);
+}, [pinInput]);
+
 
   // User-Auswahl öffnet Login-Pin
   const handleUserSelect = user => {
@@ -256,6 +330,16 @@ export default function App() {
 
   return (
     <div className="app-wrapper">
+      <NetworkIndicator />
+      {/* Update-Banner bei neuer SW */}
+    {showUpdateBanner && (
+      <div className="update-banner">
+        Neue Version verfügbar!{" "}
+        <button onClick={() => window.location.reload()}>
+          Neu laden
+        </button>
+      </div>
+    )}
       {showLevelUp && (
         <div className="level-up-popup">
           <div>🎉 Level {level} erreicht! 🎉</div>
