@@ -144,15 +144,26 @@ export default function App() {
       if (mode === "remove") {
         await updateDoc(tRef, { doneBy: "", doneById: "", lastDoneAt: "" });
         delta = -pts;
-      } else if (!task.doneBy) {
-        await updateDoc(tRef, {
-          doneBy: selectedUser.name,
-          doneById: selectedUser.id,
-          lastDoneAt: new Date().toISOString().slice(0, 10)
-        });
-        delta = pts;
-      }
-    }
+} else if (!task.doneBy) {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+
+  const update = {
+    doneBy: selectedUser.name,
+    doneById: selectedUser.id,
+    lastDoneAt: todayStr
+  };
+
+  if (task.repeatInterval && task.repeatInterval > 0) {
+    const next = new Date(today);
+    next.setDate(next.getDate() + task.repeatInterval);
+    update.availableFrom = next.toISOString().slice(0, 10);
+  }
+
+  await updateDoc(tRef, update);
+  delta = pts;
+}
+
 
     if (delta !== 0) {
       await updateDoc(uRef, {

@@ -51,10 +51,10 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
       const completions = Array.isArray(task.completions) ? task.completions : [];
       const isMulti = !!task.targetCount;
 
-      // check if locked by date or assignment
-      const isLocked =
-        (task.availableFrom && task.availableFrom > today) ||
-        (!assignedTo.includes('all') && !assignedTo.includes(currentUserId));
+const isLocked =
+  (task.availableFrom && new Date(task.availableFrom) > new Date()) ||
+  (!assignedTo.includes('all') && !assignedTo.includes(currentUserId));
+
 
       // check done today by this user
       const doneMulti = isMulti && completions.filter(
@@ -96,9 +96,10 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
     const assignedTo = task.assignedTo || [];
     const completions = Array.isArray(task.completions) ? task.completions : [];
     const isMulti = !!task.targetCount;
-    const doneCount = isMulti
-      ? completions.filter(c => c.userId === currentUserId && c.date === today).length
-      : 0;
+const doneCount = isMulti
+  ? completions.filter(c => c.date === today).length
+  : 0;
+
 
     const isDone = status === 'done';
     const isDisabled = status !== 'available';
@@ -107,13 +108,14 @@ export default function TaskList({ tasks, onComplete, currentUserId }) {
       : 'transparent';
 
     const icon = isDone ? '✖' : isDisabled ? <span>🔒</span> : `🪙 +${task.points}`;
-    const label = isDone
-      ? 'Heute erledigt'
-      : isDisabled
-        ? (task.nextAvailable ? `Verfügbar ab ${task.nextAvailable}` : 'Gesperrt')
-        : isMulti
-          ? `Noch ${task.targetCount - doneCount} von ${task.targetCount} heute`
-          : 'Heute zu erledigen';
+const label = isDone
+  ? 'Heute erledigt'
+  : isDisabled && task.availableFrom
+    ? `Verfügbar ab ${new Date(task.availableFrom).toLocaleDateString('de-DE')}`
+    : isMulti
+      ? `Noch ${task.targetCount - doneCount} von ${task.targetCount} heute`
+      : 'Heute zu erledigen';
+
 
     return (
       <div
